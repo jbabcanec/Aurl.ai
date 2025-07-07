@@ -1,0 +1,29 @@
+# Quick test training configuration
+# For rapid prototyping and testing
+
+training:
+  batch_size: 16
+  learning_rate: 5.0e-4
+  num_epochs: 5
+  warmup_steps: 50
+  
+  # Quick checkpointing
+  save_every_n_epochs: 1
+  keep_best_n_checkpoints: 2
+  
+  # No early stopping for quick tests
+  early_stopping: false
+  
+  # Faster convergence settings
+  scheduler: "linear"
+  gradient_clip_norm: 0.5
+
+data:
+  sequence_length: 512
+  num_workers: 2
+  cache_size_gb: 1
+
+experiment:
+  name: "quick_test"
+  log_every_n_steps: 5
+  save_samples_every_n_epochs: 1

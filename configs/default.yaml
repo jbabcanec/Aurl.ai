@@ -1,0 +1,119 @@
+# Default Aurl.ai Configuration
+# This is the base configuration that other configs inherit from
+
+model:
+  mode: "vae_gan"
+  hidden_dim: 512
+  num_layers: 8
+  num_heads: 8
+  dropout: 0.1
+  max_sequence_length: 2048
+  vocab_size: 512
+  
+  # VAE specific
+  latent_dim: 128
+  encoder_layers: 6
+  decoder_layers: 6
+  beta: 1.0
+  
+  # GAN specific
+  discriminator_layers: 5
+  discriminator_hidden_dim: 256
+  spectral_norm: true
+  
+  # Attention specific
+  attention_type: "scaled_dot_product"
+  relative_position_embedding: true
+  flash_attention: true
+
+training:
+  batch_size: 32
+  learning_rate: 1.0e-4
+  num_epochs: 100
+  warmup_steps: 1000
+  weight_decay: 1.0e-5
+  gradient_clip_norm: 1.0
+  accumulate_grad_batches: 1
+  
+  # Scheduling
+  scheduler: "cosine"
+  min_learning_rate: 1.0e-6
+  
+  # Early stopping
+  early_stopping: true
+  patience: 10
+  min_delta: 1.0e-4
+  
+  # Checkpointing
+  save_every_n_epochs: 5
+  keep_best_n_checkpoints: 3
+  
+  # Mixed precision
+  mixed_precision: true
+  
+  # Loss weights
+  reconstruction_weight: 1.0
+  kl_weight: 1.0
+  adversarial_weight: 0.1
+
+data:
+  sequence_length: 2048
+  overlap: 256
+  min_sequence_length: 64
+  
+  # Preprocessing
+  normalize_velocity: true
+  quantize_timing: true
+  quantization_level: 1.0
+  
+  # Augmentation
+  augmentation:
+    transpose: true
+    transpose_range: [-6, 6]
+    time_stretch: true
+    time_stretch_range: [0.9, 1.1]
+    velocity_scale: true
+    velocity_scale_range: [0.8, 1.2]
+    probability: 0.5
+  
+  # Caching
+  cache_processed_data: true
+  cache_size_gb: 5
+  num_workers: 4
+
+experiment:
+  name: "default_experiment"
+  group: "midifly"
+  tags: []
+  notes: ""
+  
+  # Tracking backends
+  use_wandb: false
+  wandb_project: "midifly"
+  wandb_entity: null
+  
+  use_tensorboard: true
+  tensorboard_log_dir: "logs/tensorboard"
+  
+  use_mlflow: false
+  mlflow_tracking_uri: "http://localhost:5000"
+  
+  # Logging frequency
+  log_every_n_steps: 50
+  save_samples_every_n_epochs: 5
+
+system:
+  device: "auto"
+  gpu_ids: [0]
+  num_workers: 4
+  pin_memory: true
+  
+  # Paths
+  data_dir: "data/raw"
+  cache_dir: "data/cache"
+  output_dir: "outputs"
+  log_dir: "logs"
+  
+  # Random seed
+  seed: null
+  deterministic: false

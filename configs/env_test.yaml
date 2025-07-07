@@ -1,0 +1,81 @@
+# Test Environment Configuration
+# Overrides for testing and validation
+
+model:
+  # Small model for fast tests
+  hidden_dim: 128
+  num_layers: 2
+  num_heads: 2
+  max_sequence_length: 256
+  vocab_size: 128
+  
+  # Minimal VAE/GAN for testing
+  latent_dim: 32
+  encoder_layers: 2
+  decoder_layers: 2
+  discriminator_layers: 2
+
+training:
+  # Minimal training for tests
+  batch_size: 4
+  num_epochs: 2
+  warmup_steps: 10
+  
+  # Quick saves for testing
+  save_every_n_epochs: 1
+  keep_best_n_checkpoints: 1
+  
+  # No early stopping for tests
+  early_stopping: false
+  
+  # Disable mixed precision for test stability
+  mixed_precision: false
+
+data:
+  # Very short sequences for tests
+  sequence_length: 128
+  overlap: 16
+  min_sequence_length: 32
+  
+  # No augmentation for deterministic tests
+  augmentation:
+    transpose: false
+    time_stretch: false
+    velocity_scale: false
+    probability: 0.0
+  
+  # Minimal cache for tests
+  cache_processed_data: false
+  cache_size_gb: 0
+  num_workers: 1
+
+experiment:
+  name: "test_experiment"
+  group: "testing"
+  tags: ["test", "ci"]
+  
+  # No external tracking for tests
+  use_wandb: false
+  use_tensorboard: false
+  use_mlflow: false
+  
+  # Minimal logging for tests
+  log_every_n_steps: 1
+  save_samples_every_n_epochs: 1
+
+system:
+  # Force CPU for test stability
+  device: "cpu"
+  gpu_ids: []
+  num_workers: 1
+  pin_memory: false
+  
+  # Test-specific paths
+  data_dir: "tests/test_data"
+  cache_dir: "tests/test_cache"
+  output_dir: "tests/test_outputs"
+  log_dir: "tests/test_logs"
+  
+  # Fixed seed for reproducible tests
+  seed: 12345
+  deterministic: true

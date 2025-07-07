@@ -1,0 +1,21 @@
+# Minimal augmentation data configuration
+# For training with less data variation
+
+data:
+  # Standard sequence processing
+  sequence_length: 2048
+  overlap: 256
+  
+  # Minimal augmentation
+  augmentation:
+    transpose: true
+    transpose_range: [-3, 3]  # Only small transpositions
+    time_stretch: false
+    velocity_scale: true
+    velocity_scale_range: [0.9, 1.1]  # Small velocity changes
+    probability: 0.2  # Low augmentation probability
+  
+  # Standard caching
+  cache_processed_data: true
+  cache_size_gb: 5
+  num_workers: 4

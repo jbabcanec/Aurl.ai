@@ -1,0 +1,32 @@
+# Transformer-only model configuration
+# For basic music generation without VAE/GAN components
+
+model:
+  mode: "transformer"
+  hidden_dim: 512
+  num_layers: 8
+  num_heads: 8
+  dropout: 0.1
+  max_sequence_length: 2048
+  vocab_size: 512
+  
+  # Disable VAE/GAN components
+  latent_dim: 0
+  encoder_layers: 0
+  decoder_layers: 0
+  discriminator_layers: 0
+  
+  # Enhanced attention for transformer-only
+  attention_type: "scaled_dot_product"
+  relative_position_embedding: true
+  flash_attention: true
+
+training:
+  # Simplified loss for transformer-only
+  reconstruction_weight: 1.0
+  kl_weight: 0.0
+  adversarial_weight: 0.0
+  
+  # Standard transformer training
+  learning_rate: 2.0e-4
+  scheduler: "cosine"

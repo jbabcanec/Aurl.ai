@@ -1,0 +1,32 @@
+# VAE-only model configuration
+# For latent space music generation without GAN
+
+model:
+  mode: "vae"
+  hidden_dim: 512
+  num_layers: 8
+  num_heads: 8
+  dropout: 0.1
+  max_sequence_length: 2048
+  vocab_size: 512
+  
+  # VAE specific
+  latent_dim: 128
+  encoder_layers: 6
+  decoder_layers: 6
+  beta: 1.0  # Standard VAE
+  
+  # Disable GAN components
+  discriminator_layers: 0
+  discriminator_hidden_dim: 0
+  spectral_norm: false
+
+training:
+  # VAE-focused loss weights
+  reconstruction_weight: 1.0
+  kl_weight: 1.0
+  adversarial_weight: 0.0
+  
+  # VAE-specific training
+  learning_rate: 1.0e-4
+  scheduler: "cosine"

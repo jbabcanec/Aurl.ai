@@ -1,0 +1,69 @@
+# Development Environment Configuration
+# Overrides for development/debugging
+
+model:
+  # Smaller model for faster development
+  hidden_dim: 256
+  num_layers: 4
+  num_heads: 4
+  max_sequence_length: 1024
+  
+  # Simpler VAE/GAN for development
+  latent_dim: 64
+  encoder_layers: 3
+  decoder_layers: 3
+  discriminator_layers: 3
+
+training:
+  # Smaller batches and fewer epochs for development
+  batch_size: 8
+  num_epochs: 10
+  warmup_steps: 100
+  
+  # More frequent saves for development
+  save_every_n_epochs: 2
+  keep_best_n_checkpoints: 2
+  
+  # Early stopping for quick iteration
+  patience: 3
+
+data:
+  # Shorter sequences for faster processing
+  sequence_length: 512
+  overlap: 64
+  
+  # Less augmentation for development
+  augmentation:
+    probability: 0.3
+  
+  # Smaller cache
+  cache_size_gb: 1
+  num_workers: 2
+
+experiment:
+  name: "dev_experiment"
+  group: "development"
+  tags: ["dev", "debug"]
+  
+  # Local logging only
+  use_wandb: false
+  use_tensorboard: true
+  use_mlflow: false
+  
+  # More frequent logging for development
+  log_every_n_steps: 10
+  save_samples_every_n_epochs: 2
+
+system:
+  # Development-specific paths
+  data_dir: "data/dev"
+  cache_dir: "data/dev_cache"
+  output_dir: "outputs/dev"
+  log_dir: "logs/dev"
+  
+  # Fixed seed for reproducible development
+  seed: 42
+  deterministic: true
+  
+  # Fewer workers for development
+  num_workers: 2

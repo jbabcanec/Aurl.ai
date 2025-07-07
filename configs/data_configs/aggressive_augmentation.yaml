@@ -1,0 +1,22 @@
+# Aggressive augmentation data configuration  
+# For maximum data diversity and generalization
+
+data:
+  # Long sequences for complex patterns
+  sequence_length: 4096
+  overlap: 512
+  
+  # Aggressive augmentation
+  augmentation:
+    transpose: true
+    transpose_range: [-12, 12]  # Full octave range
+    time_stretch: true
+    time_stretch_range: [0.5, 2.0]  # Wide tempo variation
+    velocity_scale: true
+    velocity_scale_range: [0.5, 1.5]  # Wide dynamic range
+    probability: 0.9  # High augmentation probability
+  
+  # Large cache for diverse data
+  cache_processed_data: true
+  cache_size_gb: 15
+  num_workers: 8

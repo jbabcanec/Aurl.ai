@@ -1,0 +1,91 @@
+# Production Environment Configuration
+# Optimized for high-quality results
+
+model:
+  # Large model for production quality
+  hidden_dim: 768
+  num_layers: 12
+  num_heads: 12
+  max_sequence_length: 4096
+  vocab_size: 1024
+  
+  # Full VAE/GAN for production
+  latent_dim: 256
+  encoder_layers: 8
+  decoder_layers: 8
+  discriminator_layers: 6
+  discriminator_hidden_dim: 512
+
+training:
+  # Production training settings
+  batch_size: 64
+  num_epochs: 200
+  warmup_steps: 2000
+  
+  # Conservative early stopping
+  patience: 20
+  min_delta: 1.0e-5
+  
+  # Frequent checkpointing for production
+  save_every_n_epochs: 10
+  keep_best_n_checkpoints: 5
+  
+  # Production loss weights (tuned)
+  reconstruction_weight: 1.0
+  kl_weight: 0.5
+  adversarial_weight: 0.2
+
+data:
+  # Full sequences for production
+  sequence_length: 4096
+  overlap: 512
+  
+  # Full augmentation for production
+  augmentation:
+    transpose: true
+    transpose_range: [-12, 12]
+    time_stretch: true
+    time_stretch_range: [0.8, 1.2]
+    velocity_scale: true
+    velocity_scale_range: [0.7, 1.3]
+    probability: 0.7
+  
+  # Large cache for production
+  cache_size_gb: 20
+  num_workers: 8
+
+experiment:
+  name: "production_training"
+  group: "production"
+  tags: ["prod", "release"]
+  
+  # Full tracking for production
+  use_wandb: true
+  wandb_project: "midifly-production"
+  
+  use_tensorboard: true
+  tensorboard_log_dir: "logs/production/tensorboard"
+  
+  use_mlflow: true
+  mlflow_tracking_uri: "http://mlflow.production.midifly.ai"
+  
+  # Production logging frequency
+  log_every_n_steps: 100
+  save_samples_every_n_epochs: 10
+
+system:
+  # Auto-detect best device for production
+  device: "auto"
+  gpu_ids: [0, 1, 2, 3]  # Multi-GPU if available
+  num_workers: 16
+  pin_memory: true
+  
+  # Production paths
+  data_dir: "/data/midifly/raw"
+  cache_dir: "/data/midifly/cache"
+  output_dir: "/models/midifly/outputs"
+  log_dir: "/logs/midifly"
+  
+  # No fixed seed for production diversity
+  seed: null
+  deterministic: false
