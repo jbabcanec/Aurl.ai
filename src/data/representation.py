@@ -83,9 +83,10 @@ class VocabularyConfig:
     max_velocity: int = MIDI_VELOCITY_MAX
     min_velocity: int = MIDI_VELOCITY_MIN
     
-    # Time quantization
-    time_shift_bins: int = 125      # Up to ~16 seconds at 125ms resolution
-    time_shift_ms: int = 125        # 125ms per time shift (1/8 note at 120 BPM)
+    # Time quantization (32nd note precision)
+    time_shift_bins: int = 512      # Up to ~8 seconds at 15.625ms resolution
+    time_shift_ms: float = 15.625   # 15.625ms per time shift (32nd note at 120 BPM)
+    adaptive_resolution: bool = True # Use coarser resolution for simple pieces
     
     # Velocity quantization
     velocity_bins: int = 32         # Quantize 128 velocities to 32 bins
@@ -173,11 +174,70 @@ class VocabularyConfig:
         return max(1, min(self.velocity_bins - 1, 
                          int((velocity - 1) * (self.velocity_bins - 1) / 126) + 1))
     
-    def quantize_time_shift(self, time_delta: float) -> int:
-        """Quantize time delta to time shift bins."""
+    def quantize_time_shift(self, time_delta: float, piece_complexity: str = "complex") -> int:
+        """
+        Quantize time delta to time shift bins with adaptive resolution.
+        
+        Args:
+            time_delta: Time difference in seconds
+            piece_complexity: "simple" for 16th note res, "complex" for 32nd note res
+        """
+        # Use adaptive resolution based on piece complexity
+        if self.adaptive_resolution and piece_complexity == "simple":
+            # Use 4x coarser resolution for simple pieces (125ms = 16th note precision)
+            effective_resolution = self.time_shift_ms * 4
+        else:
+            # Use full 32nd note precision for complex pieces
+            effective_resolution = self.time_shift_ms
+        
         time_ms = time_delta * 1000
-        bins = int(time_ms / self.time_shift_ms)
+        bins = int(time_ms / effective_resolution)
         return min(self.time_shift_bins - 1, max(0, bins))
+    
+    def detect_piece_complexity(self, midi_data) -> str:
+        """
+        Detect if piece needs fine timing resolution based on musical content.
+        
+        Returns:
+            "simple" if piece can use 16th note resolution
+            "complex" if piece needs 32nd note resolution
+        """
+        if not hasattr(midi_data, 'instruments'):
+            return "complex"  # Default to high precision
+            
+        # Analyze note timing to detect fine subdivisions
+        all_note_times = []
+        for instrument in midi_data.instruments:
+            for note in instrument.notes:
+                all_note_times.extend([note.start, note.end])
+        
+        if not all_note_times:
+            return "simple"
+        
+        # Check for timing patterns that suggest complex rhythms
+        all_note_times = sorted(set(all_note_times))
+        
+        # Look for very short note durations (< 100ms = likely 32nd notes or faster)
+        min_gap = float('inf')
+        for i in range(1, len(all_note_times)):
+            gap = all_note_times[i] - all_note_times[i-1]
+            if gap > 0.001:  # Ignore tiny floating point differences
+                min_gap = min(min_gap, gap)
+        
+        # If we have gaps smaller than 100ms, we likely need fine resolution
+        if min_gap < 0.1:  # 100ms threshold
+            return "complex"
+        
+        # Check for triplet-like timing (times that don't align to 16th note grid)
+        sixteenth_note_at_120bpm = 0.125  # 125ms
+        
+        for time_val in all_note_times[:20]:  # Check first 20 times
+            # See if time aligns to 16th note grid
+            grid_position = time_val / sixteenth_note_at_120bpm
+            if abs(grid_position - round(grid_position)) > 0.1:  # Not close to grid
+                return "complex"
+        
+        return "simple"
     
     def quantize_tempo(self, tempo: float) -> int:
         """Quantize tempo (BPM) to tempo bins."""
@@ -194,8 +254,8 @@ class PianoRollConfig:
     min_pitch: int = MIDI_NOTE_MIN
     max_pitch: int = MIDI_NOTE_MAX
     
-    # Time resolution
-    time_resolution: float = 0.125  # 125ms per step (1/8 note at 120 BPM)
+    # Time resolution (32nd note precision)
+    time_resolution: float = 0.015625  # 15.625ms per step (32nd note at 120 BPM)
     
     # Feature dimensions
     velocity_feature: bool = True

@@ -1,0 +1,560 @@
+{
+  "timestamp": "2025-07-07T14:03:09.620961",
+  "files_analyzed": 10,
+  "total_notes": 23689,
+  "musical_statistics": {
+    "pitch_analysis": {
+      "range": [
+        24,
+        101
+      ],
+      "mean": 62.58786778673646,
+      "std": 14.36099083919652,
+      "most_common": [
+        [
+          52,
+          848
+        ],
+        [
+          57,
+          769
+        ],
+        [
+          59,
+          754
+        ],
+        [
+          64,
+          741
+        ],
+        [
+          71,
+          654
+        ],
+        [
+          55,
+          639
+        ],
+        [
+          60,
+          623
+        ],
+        [
+          62,
+          623
+        ],
+        [
+          76,
+          605
+        ],
+        [
+          67,
+          597
+        ]
+      ]
+    },
+    "velocity_analysis": {
+      "range": [
+        14,
+        117
+      ],
+      "mean": 52.6316433787834,
+      "std": 18.09793167957868,
+      "distribution": [
+        1457,
+        5183,
+        5814,
+        5027,
+        4054,
+        1812,
+        303,
+        39
+      ]
+    },
+    "duration_analysis": {
+      "range": [
+        0.010000000000005116,
+        6.268944249999997
+      ],
+      "mean": 0.2611898757747091,
+      "std": 0.3775794679039427,
+      "short_notes": 17693,
+      "medium_notes": 5114,
+      "long_notes": 882
+    }
+  },
+  "transformation_examples": [
+    {
+      "file": "waldstein_1.mid",
+      "basic_stats": {
+        "filename": "waldstein_1.mid",
+        "duration_seconds": 618.4325552999968,
+        "num_instruments": 2,
+        "total_notes": 8576,
+        "instruments": [
+          {
+            "name": "Piano right",
+            "program": 1,
+            "is_drum": false,
+            "num_notes": 4243,
+            "pitch_range": [
+              41,
+              93
+            ],
+            "velocity_range": [
+              28,
+              106
+            ],
+            "avg_note_duration": 0.18072456792462074,
+            "polyphony_max": 4
+          },
+          {
+            "name": "Piano left",
+            "program": 1,
+            "is_drum": false,
+            "num_notes": 4333,
+            "pitch_range": [
+              29,
+              84
+            ],
+            "velocity_range": [
+              22,
+              96
+            ],
+            "avg_note_duration": 0.2483954596858411,
+            "polyphony_max": 4
+          }
+        ]
+      },
+      "transformation": {
+        "num_events": 35955,
+        "num_tokens": 35955,
+        "unique_tokens": 190,
+        "piano_roll_shape": [
+          4948,
+          88
+        ],
+        "event_type_distribution": {
+          "START_TOKEN": 1,
+          "INSTRUMENT_CHANGE": 7180,
+          "VELOCITY_CHANGE": 6931,
+          "NOTE_ON": 8576,
+          "TEMPO_CHANGE": 3175,
+          "TIME_SHIFT": 1515,
+          "NOTE_OFF": 8576,
+          "END_TOKEN": 1
+        },
+        "token_examples": [
+          {
+            "position": 0,
+            "token": 0,
+            "type": "START_TOKEN",
+            "value": 0
+          },
+          {
+            "position": 3994,
+            "token": 181,
+            "type": "TIME_SHIFT",
+            "value": 1
+          },
+          {
+            "position": 7989,
+            "token": 143,
+            "type": "NOTE_OFF",
+            "value": 72
+          },
+          {
+            "position": 11984,
+            "token": 318,
+            "type": "VELOCITY_CHANGE",
+            "value": 13
+          },
+          {
+            "position": 15979,
+            "token": 323,
+            "type": "VELOCITY_CHANGE",
+            "value": 18
+          },
+          {
+            "position": 19974,
+            "token": 181,
+            "type": "TIME_SHIFT",
+            "value": 1
+          },
+          {
+            "position": 23969,
+            "token": 316,
+            "type": "VELOCITY_CHANGE",
+            "value": 11
+          },
+          {
+            "position": 27964,
+            "token": 36,
+            "type": "NOTE_ON",
+            "value": 53
+          },
+          {
+            "position": 31959,
+            "token": 29,
+            "type": "NOTE_ON",
+            "value": 46
+          },
+          {
+            "position": 35954,
+            "token": 1,
+            "type": "END_TOKEN",
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "file": "chpn_op23.mid",
+      "basic_stats": {
+        "filename": "chpn_op23.mid",
+        "duration_seconds": 537.9830980937514,
+        "num_instruments": 2,
+        "total_notes": 5028,
+        "instruments": [
+          {
+            "name": "Piano right",
+            "program": 0,
+            "is_drum": false,
+            "num_notes": 2852,
+            "pitch_range": [
+              33,
+              101
+            ],
+            "velocity_range": [
+              17,
+              117
+            ],
+            "avg_note_duration": 0.3057422272666844,
+            "polyphony_max": 5
+          },
+          {
+            "name": "Piano left",
+            "program": 0,
+            "is_drum": false,
+            "num_notes": 2176,
+            "pitch_range": [
+              26,
+              87
+            ],
+            "velocity_range": [
+              16,
+              115
+            ],
+            "avg_note_duration": 0.3568061164799715,
+            "polyphony_max": 5
+          }
+        ]
+      },
+      "transformation": {
+        "num_events": 21443,
+        "num_tokens": 21443,
+        "unique_tokens": 225,
+        "piano_roll_shape": [
+          4304,
+          88
+        ],
+        "event_type_distribution": {
+          "START_TOKEN": 1,
+          "TEMPO_CHANGE": 2934,
+          "VELOCITY_CHANGE": 3869,
+          "NOTE_ON": 5028,
+          "INSTRUMENT_CHANGE": 3392,
+          "TIME_SHIFT": 1190,
+          "NOTE_OFF": 5028,
+          "END_TOKEN": 1
+        },
+        "token_examples": [
+          {
+            "position": 0,
+            "token": 0,
+            "type": "START_TOKEN",
+            "value": 0
+          },
+          {
+            "position": 2382,
+            "token": 352,
+            "type": "TEMPO_CHANGE",
+            "value": 13
+          },
+          {
+            "position": 4764,
+            "token": 150,
+            "type": "NOTE_OFF",
+            "value": 79
+          },
+          {
+            "position": 7147,
+            "token": 372,
+            "type": "INSTRUMENT_CHANGE",
+            "value": 1
+          },
+          {
+            "position": 9529,
+            "token": 182,
+            "type": "TIME_SHIFT",
+            "value": 2
+          },
+          {
+            "position": 11912,
+            "token": 131,
+            "type": "NOTE_OFF",
+            "value": 60
+          },
+          {
+            "position": 14294,
+            "token": 39,
+            "type": "NOTE_ON",
+            "value": 56
+          },
+          {
+            "position": 16677,
+            "token": 319,
+            "type": "VELOCITY_CHANGE",
+            "value": 14
+          },
+          {
+            "position": 19059,
+            "token": 138,
+            "type": "NOTE_OFF",
+            "value": 67
+          },
+          {
+            "position": 21442,
+            "token": 1,
+            "type": "END_TOKEN",
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "file": "chpn-p19.mid",
+      "basic_stats": {
+        "filename": "chpn-p19.mid",
+        "duration_seconds": 66.27680933333339,
+        "num_instruments": 2,
+        "total_notes": 1237,
+        "instruments": [
+          {
+            "name": "Piano right",
+            "program": 0,
+            "is_drum": false,
+            "num_notes": 619,
+            "pitch_range": [
+              55,
+              99
+            ],
+            "velocity_range": [
+              36,
+              102
+            ],
+            "avg_note_duration": 0.1091288276790523,
+            "polyphony_max": 4
+          },
+          {
+            "name": "Piano left",
+            "program": 0,
+            "is_drum": false,
+            "num_notes": 618,
+            "pitch_range": [
+              31,
+              79
+            ],
+            "velocity_range": [
+              26,
+              88
+            ],
+            "avg_note_duration": 0.1090776943803938,
+            "polyphony_max": 4
+          }
+        ]
+      },
+      "transformation": {
+        "num_events": 5821,
+        "num_tokens": 5821,
+        "unique_tokens": 154,
+        "piano_roll_shape": [
+          531,
+          88
+        ],
+        "event_type_distribution": {
+          "START_TOKEN": 1,
+          "TEMPO_CHANGE": 894,
+          "TIME_SHIFT": 13,
+          "VELOCITY_CHANGE": 1202,
+          "NOTE_ON": 1237,
+          "NOTE_OFF": 1237,
+          "INSTRUMENT_CHANGE": 1236,
+          "END_TOKEN": 1
+        },
+        "token_examples": [
+          {
+            "position": 0,
+            "token": 0,
+            "type": "START_TOKEN",
+            "value": 0
+          },
+          {
+            "position": 646,
+            "token": 133,
+            "type": "NOTE_OFF",
+            "value": 62
+          },
+          {
+            "position": 1293,
+            "token": 148,
+            "type": "NOTE_OFF",
+            "value": 77
+          },
+          {
+            "position": 1940,
+            "token": 369,
+            "type": "TEMPO_CHANGE",
+            "value": 30
+          },
+          {
+            "position": 2586,
+            "token": 155,
+            "type": "NOTE_OFF",
+            "value": 84
+          },
+          {
+            "position": 3233,
+            "token": 371,
+            "type": "INSTRUMENT_CHANGE",
+            "value": 0
+          },
+          {
+            "position": 3880,
+            "token": 43,
+            "type": "NOTE_ON",
+            "value": 60
+          },
+          {
+            "position": 4526,
+            "token": 70,
+            "type": "NOTE_ON",
+            "value": 87
+          },
+          {
+            "position": 5173,
+            "token": 114,
+            "type": "NOTE_OFF",
+            "value": 43
+          },
+          {
+            "position": 5820,
+            "token": 1,
+            "type": "END_TOKEN",
+            "value": 0
+          }
+        ]
+      }
+    }
+  ],
+  "vocabulary_usage": {
+    "total_vocab_size": 387,
+    "unique_tokens_used": 236,
+    "coverage_percentage": 60.98191214470285,
+    "most_common_tokens": [
+      [
+        372,
+        9174
+      ],
+      [
+        371,
+        9137
+      ],
+      [
+        181,
+        3857
+      ],
+      [
+        361,
+        1910
+      ],
+      [
+        318,
+        1520
+      ],
+      [
+        314,
+        1503
+      ],
+      [
+        315,
+        1391
+      ],
+      [
+        319,
+        1367
+      ],
+      [
+        317,
+        1366
+      ],
+      [
+        321,
+        1340
+      ],
+      [
+        316,
+        1297
+      ],
+      [
+        313,
+        1249
+      ],
+      [
+        320,
+        1171
+      ],
+      [
+        323,
+        1074
+      ],
+      [
+        322,
+        1034
+      ],
+      [
+        312,
+        996
+      ],
+      [
+        35,
+        848
+      ],
+      [
+        123,
+        848
+      ],
+      [
+        360,
+        798
+      ],
+      [
+        324,
+        794
+      ]
+    ],
+    "token_distribution": {
+      "special_tokens": 2,
+      "note_events": 152,
+      "time_events": 21,
+      "other_events": 61
+    }
+  },
+  "data_quality_insights": {
+    "average_file_duration": 407.56415424236053,
+    "average_instruments_per_file": 2.0,
+    "max_polyphony_observed": 5,
+    "average_max_polyphony": 4.333333333333333,
+    "recommendations": []
+  }
+}
