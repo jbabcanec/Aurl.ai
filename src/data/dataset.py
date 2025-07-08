@@ -39,10 +39,15 @@ class LazyMidiDataset(Dataset):
                  vocab_config: VocabularyConfig = None,
                  piano_roll_config: PianoRollConfig = None,
                  sequence_length: int = 2048,
+                 max_sequence_length: Optional[int] = None,
                  overlap: int = 256,
                  file_extensions: List[str] = None,
                  max_files: Optional[int] = None,
-                 enable_caching: bool = True):
+                 enable_caching: bool = True,
+                 truncation_strategy: str = "sliding_window",
+                 curriculum_learning: bool = False,
+                 sequence_length_schedule: Optional[List[int]] = None,
+                 current_epoch: int = 0):
         """
         Initialize lazy MIDI dataset.
         
@@ -51,11 +56,16 @@ class LazyMidiDataset(Dataset):
             cache_dir: Directory for caching processed data
             vocab_config: Vocabulary configuration for tokenization
             piano_roll_config: Piano roll configuration
-            sequence_length: Length of sequences for training
+            sequence_length: Base length of sequences for training
+            max_sequence_length: Maximum allowed sequence length (None = no limit)
             overlap: Overlap between sequences
             file_extensions: Allowed file extensions
             max_files: Maximum number of files to include (for testing)
             enable_caching: Whether to cache processed representations
+            truncation_strategy: How to handle long sequences ("sliding_window", "truncate", "adaptive")
+            curriculum_learning: Enable progressive sequence length increase
+            sequence_length_schedule: List of sequence lengths for curriculum learning
+            current_epoch: Current training epoch (for curriculum learning)
         """
         self.data_dir = Path(data_dir)
         self.cache_dir = Path(cache_dir or (self.data_dir.parent / "cache"))
@@ -68,8 +78,16 @@ class LazyMidiDataset(Dataset):
         )
         
         self.sequence_length = sequence_length
+        self.max_sequence_length = max_sequence_length
         self.overlap = overlap
         self.enable_caching = enable_caching
+        self.truncation_strategy = truncation_strategy
+        self.curriculum_learning = curriculum_learning
+        self.sequence_length_schedule = sequence_length_schedule or [512, 1024, 2048]
+        self.current_epoch = current_epoch
+        
+        # Determine effective sequence length
+        self.effective_sequence_length = self._get_effective_sequence_length()
         
         # File discovery
         self.file_extensions = file_extensions or ['.mid', '.midi']
@@ -80,7 +98,7 @@ class LazyMidiDataset(Dataset):
         self._build_sequence_index()
         
         logger.info(f"LazyMidiDataset initialized with {len(self.midi_files)} files, "
-                   f"{len(self.sequences)} sequences")
+                   f"{len(self.sequences)} sequences, effective_length={self.effective_sequence_length}")
     
     def _discover_midi_files(self, max_files: Optional[int] = None) -> List[Path]:
         """Discover MIDI files in the data directory."""
@@ -100,6 +118,34 @@ class LazyMidiDataset(Dataset):
         logger.info(f"Discovered {len(midi_files)} MIDI files")
         return midi_files
     
+    def _get_effective_sequence_length(self) -> int:
+        """Get the effective sequence length considering curriculum learning."""
+        if not self.curriculum_learning or not self.sequence_length_schedule:
+            base_length = self.sequence_length
+        else:
+            # Curriculum learning: gradually increase sequence length
+            schedule_idx = min(self.current_epoch // 10, len(self.sequence_length_schedule) - 1)
+            base_length = self.sequence_length_schedule[schedule_idx]
+            logger.debug(f"Curriculum learning: epoch {self.current_epoch}, using length {base_length}")
+        
+        # Apply maximum sequence length constraint
+        if self.max_sequence_length is not None:
+            return min(base_length, self.max_sequence_length)
+        return base_length
+    
+    def update_epoch(self, epoch: int):
+        """Update current epoch for curriculum learning."""
+        if self.curriculum_learning and epoch != self.current_epoch:
+            old_length = self.effective_sequence_length
+            self.current_epoch = epoch
+            self.effective_sequence_length = self._get_effective_sequence_length()
+            
+            if old_length != self.effective_sequence_length:
+                logger.info(f"Curriculum learning: Updated sequence length from {old_length} to {self.effective_sequence_length}")
+                # Rebuild sequence index with new length
+                self.sequences = []
+                self._build_sequence_index()
+    
     def _build_sequence_index(self):
         """Build an index of all sequences across all files."""
         logger.info("Building sequence index...")
@@ -110,19 +156,46 @@ class LazyMidiDataset(Dataset):
                 file_info = self._get_file_info(midi_file)
                 estimated_tokens = file_info.get('estimated_tokens', 1000)
                 
-                # Calculate number of sequences for this file
-                if estimated_tokens <= self.sequence_length:
+                # Calculate number of sequences for this file with length limiting
+                effective_length = self.effective_sequence_length
+                
+                if estimated_tokens <= effective_length:
                     # Small file - one sequence
                     self.sequences.append((file_idx, 0, estimated_tokens))
                 else:
-                    # Large file - multiple overlapping sequences
-                    step_size = self.sequence_length - self.overlap
-                    num_sequences = (estimated_tokens - self.overlap) // step_size
+                    # Large file - apply truncation strategy
+                    if self.truncation_strategy == "sliding_window":
+                        # Multiple overlapping sequences
+                        step_size = effective_length - self.overlap
+                        max_sequences = (estimated_tokens - self.overlap) // step_size
+                        
+                        # Limit number of sequences to prevent memory explosion
+                        max_sequences_per_file = min(max_sequences, 20)  # Cap at 20 sequences per file
+                        
+                        for seq_idx in range(max_sequences_per_file):
+                            start_idx = seq_idx * step_size
+                            end_idx = min(start_idx + effective_length, estimated_tokens)
+                            self.sequences.append((file_idx, start_idx, end_idx))
                     
-                    for seq_idx in range(num_sequences):
-                        start_idx = seq_idx * step_size
-                        end_idx = min(start_idx + self.sequence_length, estimated_tokens)
-                        self.sequences.append((file_idx, start_idx, end_idx))
+                    elif self.truncation_strategy == "truncate":
+                        # Single sequence, truncated to max length
+                        self.sequences.append((file_idx, 0, effective_length))
+                    
+                    elif self.truncation_strategy == "adaptive":
+                        # Adaptive strategy: use sliding window for moderately long pieces,
+                        # truncate for extremely long pieces
+                        if estimated_tokens <= effective_length * 3:
+                            # Moderately long: sliding window
+                            step_size = effective_length - self.overlap
+                            num_sequences = min(3, (estimated_tokens - self.overlap) // step_size)
+                            
+                            for seq_idx in range(num_sequences):
+                                start_idx = seq_idx * step_size
+                                end_idx = min(start_idx + effective_length, estimated_tokens)
+                                self.sequences.append((file_idx, start_idx, end_idx))
+                        else:
+                            # Very long: truncate to avoid memory issues
+                            self.sequences.append((file_idx, 0, effective_length))
             
             except Exception as e:
                 logger.warning(f"Failed to index {midi_file}: {e}")
@@ -243,15 +316,16 @@ class LazyMidiDataset(Dataset):
                     sequence = tokens[actual_start:actual_end]
                 
                 # Pad or truncate to target length
-                if len(sequence) < self.sequence_length:
+                target_length = self.effective_sequence_length
+                if len(sequence) < target_length:
                     # Pad with PAD tokens (token 2)
-                    pad_length = self.sequence_length - len(sequence)
+                    pad_length = target_length - len(sequence)
                     sequence = np.concatenate([
                         sequence, 
                         np.full(pad_length, 2, dtype=np.int32)  # PAD token
                     ])
-                elif len(sequence) > self.sequence_length:
-                    sequence = sequence[:self.sequence_length]
+                elif len(sequence) > target_length:
+                    sequence = sequence[:target_length]
                 
                 # Get corresponding piano roll segment
                 piano_roll_segment = None
@@ -270,7 +344,8 @@ class LazyMidiDataset(Dataset):
                 
             else:
                 # Fallback for empty representation
-                sequence = np.array([0, 1] + [2] * (self.sequence_length - 2), dtype=np.int32)
+                target_length = self.effective_sequence_length
+                sequence = np.array([0, 1] + [2] * (target_length - 2), dtype=np.int32)
                 piano_roll_segment = None
             
             # Prepare return data
@@ -289,7 +364,8 @@ class LazyMidiDataset(Dataset):
             logger.error(f"Failed to get item {idx} from {midi_file}: {e}")
             
             # Return minimal fallback
-            fallback_tokens = np.array([0, 1] + [2] * (self.sequence_length - 2), dtype=np.int32)
+            target_length = self.effective_sequence_length
+            fallback_tokens = np.array([0, 1] + [2] * (target_length - 2), dtype=np.int32)
             return {
                 'tokens': torch.from_numpy(fallback_tokens).long(),
                 'file_path': str(midi_file),
@@ -317,6 +393,11 @@ class LazyMidiDataset(Dataset):
         
         stats['avg_file_size_mb'] = stats['total_size_mb'] / max(1, len(stats['file_sizes']))
         stats['sequence_length'] = self.sequence_length
+        stats['effective_sequence_length'] = self.effective_sequence_length
+        stats['max_sequence_length'] = self.max_sequence_length
+        stats['truncation_strategy'] = self.truncation_strategy
+        stats['curriculum_learning'] = self.curriculum_learning
+        stats['current_epoch'] = self.current_epoch
         stats['vocab_size'] = self.vocab_config.vocab_size
         
         return stats

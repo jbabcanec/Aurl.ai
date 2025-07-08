@@ -1,0 +1,53 @@
+{
+  "analysis": {
+    "file_count": 50,
+    "avg_duration_seconds": 197.42496979028107,
+    "avg_token_length": 9432.7,
+    "max_token_length": 40748,
+    "min_token_length": 1039,
+    "simple_pieces": 0,
+    "complex_pieces": 50,
+    "complexity_ratio": 1.0,
+    "memory_per_sequence_mb": 18.4232421875,
+    "recommended_max_length": 2048,
+    "recommended_batch_size": 3276,
+    "truncation_loss_percent": 84.0
+  },
+  "recommendations": {
+    "sequence_configuration": {
+      "max_sequence_length": 2048,
+      "truncation_strategy": "sliding_window",
+      "padding_strategy": "right_pad",
+      "truncation_loss_percent": 84.0
+    },
+    "memory_optimization": {
+      "recommended_batch_size": 3276,
+      "gradient_accumulation_steps": 1,
+      "gradient_checkpointing": true,
+      "mixed_precision": "fp16"
+    },
+    "attention_architecture": {
+      "use_hierarchical_attention": true,
+      "local_attention_window": 256,
+      "global_attention_stride": 64,
+      "sparse_attention_pattern": "sliding_window"
+    },
+    "model_scaling": {
+      "start_with_small_model": true,
+      "recommended_layers": 8,
+      "recommended_heads": 8,
+      "recommended_dim": 512,
+      "feed_forward_expansion": 4
+    },
+    "training_strategy": {
+      "curriculum_learning": true,
+      "start_with_short_sequences": true,
+      "sequence_length_schedule": [
+        512,
+        1024,
+        2048
+      ],
+      "adaptive_batch_sizing": true
+    }
+  }
+}
