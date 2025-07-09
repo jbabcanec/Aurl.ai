@@ -26,8 +26,8 @@ except ImportError:
     WANDB_AVAILABLE = False
     wandb = None
 
-from src.training.experiment_tracker import DataUsageInfo, EpochSummary
-from src.utils.logger import setup_logger
+from src.training.core.experiment_tracker import DataUsageInfo, EpochSummary
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

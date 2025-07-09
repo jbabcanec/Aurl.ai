@@ -13,7 +13,7 @@ import math
 
 from src.models.components import TransformerBlock, OutputHead
 from src.models.attention import create_attention_layer
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

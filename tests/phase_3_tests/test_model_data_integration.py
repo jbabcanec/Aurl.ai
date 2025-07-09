@@ -22,7 +22,7 @@ from src.data.dataset import LazyMidiDataset, create_dataloader
 from src.data.representation import VocabularyConfig, PianoRollConfig
 from src.models import MusicTransformerVAEGAN, BaselineTransformer
 from src.utils.config import MidiFlyConfig
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

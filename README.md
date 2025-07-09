@@ -10,7 +10,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/aurl.git
+git clone https://github.com/jbabcanec/aurl.ai.git
 cd aurl
 
 # Install dependencies
@@ -156,7 +156,7 @@ Output MIDI Files (High-quality export with all musical nuances)
 ### Development Setup
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/aurl.git
+git clone https://github.com/jbabcanec/aurl.ai.git
 cd aurl
 
 # Create virtual environment
@@ -289,13 +289,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Inspired by state-of-the-art music generation research
 - Designed for professional music production workflows
 - Optimized for both research and production use
-
-## 📞 Contact
-
-For questions, suggestions, or collaboration:
-- **Issues**: [GitHub Issues](https://github.com/yourusername/aurl/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/aurl/discussions)
-- **Email**: [your.email@example.com](mailto:your.email@example.com)
 
 ---
 

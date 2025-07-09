@@ -19,7 +19,7 @@ import pretty_midi
 import mido
 from mido import MidiFile, MidiTrack
 
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 from src.utils.constants import (
     MIDI_NOTE_MIN, MIDI_NOTE_MAX, MIDI_VELOCITY_MIN, MIDI_VELOCITY_MAX,
     is_valid_midi_note, is_valid_velocity, clamp_midi_note, clamp_velocity

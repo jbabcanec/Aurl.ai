@@ -17,9 +17,9 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from src.data.dataset import LazyMidiDataset
 from src.data.augmentation import AugmentationConfig
-from src.training.enhanced_logger import EnhancedTrainingLogger
-from src.training.experiment_tracker import DataUsageInfo
-from src.utils.logger import setup_logger
+from src.training.core.training_logger import EnhancedTrainingLogger
+from src.training.core.experiment_tracker import DataUsageInfo
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

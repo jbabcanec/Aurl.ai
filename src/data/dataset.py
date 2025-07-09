@@ -21,7 +21,7 @@ from src.data.representation import (
     VocabularyConfig, PianoRollConfig, MusicalMetadata
 )
 from src.data.augmentation import MusicAugmenter, AugmentationConfig
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

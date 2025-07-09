@@ -39,7 +39,7 @@ from src.data.midi_parser import load_midi_file, MidiParser
 from src.data.representation import (
     MusicRepresentationConverter, VocabularyConfig, PianoRollConfig
 )
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

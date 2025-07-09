@@ -22,7 +22,7 @@ import numpy as np
 
 from src.models.components import TransformerBlock
 from src.models.attention import create_attention_layer
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

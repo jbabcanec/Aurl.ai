@@ -19,7 +19,7 @@ import json
 from pathlib import Path
 from enum import Enum
 
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

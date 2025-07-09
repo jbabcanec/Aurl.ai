@@ -18,7 +18,7 @@ from enum import IntEnum
 import logging
 
 from src.data.midi_parser import MidiData, MidiNote, MidiInstrument
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 from src.utils.constants import (
     MIDI_NOTE_MIN, MIDI_NOTE_MAX, MIDI_VELOCITY_MIN, MIDI_VELOCITY_MAX
 )

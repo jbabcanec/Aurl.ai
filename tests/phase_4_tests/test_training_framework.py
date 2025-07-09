@@ -26,17 +26,17 @@ from unittest.mock import Mock, patch
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.training.trainer import (
+from src.training.core.trainer import (
     AdvancedTrainer, TrainingConfig, CurriculumScheduler,
     DynamicBatchSizer, ThroughputMonitor, create_trainer_from_config
 )
-from src.training.memory_optimization import (
+from src.training.utils.memory_optimization import (
     MemoryProfiler, GradientCheckpointing, MemoryOptimizer
 )
 from src.models.music_transformer_vae_gan import MusicTransformerVAEGAN
-from src.training.losses import ComprehensiveLossFramework
+from src.training.core.losses import ComprehensiveLossFramework
 from src.data.dataset import LazyMidiDataset
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

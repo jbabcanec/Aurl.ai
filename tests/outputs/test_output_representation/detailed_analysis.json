@@ -1,0 +1,224 @@
+{
+  "timestamp": "2025-07-09T14:10:46.450938",
+  "summary": {
+    "duration": 7.8,
+    "num_events": 168,
+    "num_tokens": 168,
+    "piano_roll_shape": [
+      500,
+      88
+    ],
+    "pitch_range": [
+      36,
+      72
+    ],
+    "velocity_range": [
+      60,
+      116
+    ],
+    "note_density": 4.615384615384616,
+    "num_instruments": 3,
+    "tempo_changes": 1,
+    "time_signature": "4/4"
+  },
+  "vocabulary_config": {
+    "vocab_size": 774,
+    "pitch_range": "21-108",
+    "time_resolution_ms": 15.625,
+    "velocity_bins": 32,
+    "tempo_range": "60-200 BPM"
+  },
+  "event_analysis": {
+    "total_events": 168,
+    "event_types": {
+      "START_TOKEN": 1,
+      "VELOCITY_CHANGE": 27,
+      "NOTE_ON": 36,
+      "INSTRUMENT_CHANGE": 29,
+      "TEMPO_CHANGE": 1,
+      "TIME_SHIFT": 37,
+      "NOTE_OFF": 36,
+      "END_TOKEN": 1
+    },
+    "first_20_events": [
+      {
+        "index": 0,
+        "type": "START_TOKEN",
+        "value": 0,
+        "time": 0.0,
+        "description": "START_TOKEN(val=0, ch=0, t=0.000)"
+      },
+      {
+        "index": 1,
+        "type": "VELOCITY_CHANGE",
+        "value": 15,
+        "time": 0.0,
+        "description": "VELOCITY_CHANGE(val=15, ch=0, t=0.000)"
+      },
+      {
+        "index": 2,
+        "type": "NOTE_ON",
+        "value": 60,
+        "time": 0.0,
+        "description": "NOTE_ON(val=60, ch=0, t=0.000)"
+      },
+      {
+        "index": 3,
+        "type": "INSTRUMENT_CHANGE",
+        "value": 1,
+        "time": 0.0,
+        "description": "INSTRUMENT_CHANGE(val=1, ch=0, t=0.000)"
+      },
+      {
+        "index": 4,
+        "type": "VELOCITY_CHANGE",
+        "value": 17,
+        "time": 0.0,
+        "description": "VELOCITY_CHANGE(val=17, ch=1, t=0.000)"
+      },
+      {
+        "index": 5,
+        "type": "NOTE_ON",
+        "value": 48,
+        "time": 0.0,
+        "description": "NOTE_ON(val=48, ch=1, t=0.000)"
+      },
+      {
+        "index": 6,
+        "type": "INSTRUMENT_CHANGE",
+        "value": 2,
+        "time": 0.0,
+        "description": "INSTRUMENT_CHANGE(val=2, ch=0, t=0.000)"
+      },
+      {
+        "index": 7,
+        "type": "VELOCITY_CHANGE",
+        "value": 25,
+        "time": 0.0,
+        "description": "VELOCITY_CHANGE(val=25, ch=2, t=0.000)"
+      },
+      {
+        "index": 8,
+        "type": "NOTE_ON",
+        "value": 36,
+        "time": 0.0,
+        "description": "NOTE_ON(val=36, ch=2, t=0.000)"
+      },
+      {
+        "index": 9,
+        "type": "INSTRUMENT_CHANGE",
+        "value": 0,
+        "time": 0.0,
+        "description": "INSTRUMENT_CHANGE(val=0, ch=0, t=0.000)"
+      },
+      {
+        "index": 10,
+        "type": "TEMPO_CHANGE",
+        "value": 13,
+        "time": 0.0,
+        "description": "TEMPO_CHANGE(val=13, ch=0, t=0.000)"
+      },
+      {
+        "index": 11,
+        "type": "TIME_SHIFT",
+        "value": 6,
+        "time": 0.09999999999999999,
+        "description": "TIME_SHIFT(val=6, ch=0, t=0.100)"
+      },
+      {
+        "index": 12,
+        "type": "INSTRUMENT_CHANGE",
+        "value": 2,
+        "time": 0.09999999999999999,
+        "description": "INSTRUMENT_CHANGE(val=2, ch=0, t=0.100)"
+      },
+      {
+        "index": 13,
+        "type": "NOTE_OFF",
+        "value": 36,
+        "time": 0.09999999999999999,
+        "description": "NOTE_OFF(val=36, ch=2, t=0.100)"
+      },
+      {
+        "index": 14,
+        "type": "TIME_SHIFT",
+        "value": 19,
+        "time": 0.39999999999999997,
+        "description": "TIME_SHIFT(val=19, ch=0, t=0.400)"
+      },
+      {
+        "index": 15,
+        "type": "INSTRUMENT_CHANGE",
+        "value": 0,
+        "time": 0.39999999999999997,
+        "description": "INSTRUMENT_CHANGE(val=0, ch=0, t=0.400)"
+      },
+      {
+        "index": 16,
+        "type": "NOTE_OFF",
+        "value": 60,
+        "time": 0.39999999999999997,
+        "description": "NOTE_OFF(val=60, ch=0, t=0.400)"
+      },
+      {
+        "index": 17,
+        "type": "TIME_SHIFT",
+        "value": 6,
+        "time": 0.5,
+        "description": "TIME_SHIFT(val=6, ch=0, t=0.500)"
+      },
+      {
+        "index": 18,
+        "type": "VELOCITY_CHANGE",
+        "value": 17,
+        "time": 0.5,
+        "description": "VELOCITY_CHANGE(val=17, ch=0, t=0.500)"
+      },
+      {
+        "index": 19,
+        "type": "NOTE_ON",
+        "value": 62,
+        "time": 0.5,
+        "description": "NOTE_ON(val=62, ch=0, t=0.500)"
+      }
+    ]
+  },
+  "token_analysis": {
+    "total_tokens": 168,
+    "unique_tokens": 49,
+    "first_20_tokens": [
+      0,
+      707,
+      43,
+      759,
+      709,
+      31,
+      760,
+      717,
+      19,
+      758,
+      739,
+      186,
+      760,
+      107,
+      199,
+      758,
+      131,
+      186,
+      709,
+      45
+    ]
+  },
+  "piano_roll_analysis": {
+    "shape": [
+      500,
+      88
+    ],
+    "active_notes_percentage": 3.109090909090909,
+    "polyphony_stats": {
+      "max_simultaneous_notes": 6,
+      "avg_simultaneous_notes": 2.7360000610351562,
+      "silent_timesteps": 24
+    }
+  }
+}

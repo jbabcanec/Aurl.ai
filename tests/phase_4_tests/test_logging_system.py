@@ -31,16 +31,16 @@ import logging
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.training.enhanced_logger import (
+from src.training.core.training_logger import (
     EnhancedTrainingLogger, StructuredFormatter
 )
-from src.training.experiment_tracker import (
+from src.training.core.experiment_tracker import (
     ComprehensiveExperimentTracker, DataUsageInfo, EpochSummary
 )
-from src.training.tensorboard_logger import TensorBoardLogger
-from src.training.realtime_dashboard import RealTimeDashboard, ConsoleLogger
-from src.training.wandb_integration import WandBIntegration
-from src.utils.logger import setup_logger
+from src.training.monitoring.tensorboard_logger import TensorBoardLogger
+from src.training.monitoring.realtime_dashboard import RealTimeDashboard, ConsoleLogger
+from src.training.monitoring.wandb_integration import WandBIntegration
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -94,47 +94,46 @@ def test_structured_logging_format():
         return False
 
 
-def test_enhanced_logger_initialization():
+def test_enhanced_logger_initialization(test_experiment_dir):
     """Test EnhancedTrainingLogger initialization."""
     print("\n🧪 Testing Enhanced Logger Initialization")
     print("-" * 40)
     
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Create logger with all features enabled
-            enhanced_logger = EnhancedTrainingLogger(
-                experiment_name="test_experiment",
-                save_dir=Path(temp_dir),
-                model_config={"d_model": 512, "n_layers": 12},
-                training_config={"batch_size": 32, "learning_rate": 1e-4},
-                data_config={"dataset_size": 10000},
-                enable_tensorboard=True,
-                enable_dashboard=False,  # Disable GUI for testing
-                enable_wandb=False,  # Disable W&B for unit tests
-                log_level="INFO"
-            )
-            
-            # Verify components initialized
-            assert enhanced_logger.experiment_tracker is not None, "Experiment tracker should be initialized"
-            assert enhanced_logger.tensorboard_logger is not None, "TensorBoard logger should be initialized"
-            assert enhanced_logger.console_logger is not None, "Console logger should be initialized"
-            assert enhanced_logger.structured_logger is not None, "Structured logger should be initialized"
-            
-            print(f"   ✅ Enhanced logger initialized")
-            print(f"   ✅ Experiment ID: {enhanced_logger.experiment_id}")
-            print(f"   ✅ Save directory: {enhanced_logger.save_dir}")
-            
-            # Check log file creation
-            log_dir = enhanced_logger.save_dir / "logs"
-            assert log_dir.exists(), "Logs directory should be created"
-            
-            log_files = list(log_dir.glob("*.log"))
-            assert len(log_files) > 0, "Log file should be created"
-            
-            print(f"   ✅ Log file created: {log_files[0].name}")
-            
-            return True
-            
+        # Create logger with all features enabled
+        enhanced_logger = EnhancedTrainingLogger(
+            experiment_name="test_experiment",
+            save_dir=test_experiment_dir,
+            model_config={"d_model": 512, "n_layers": 12},
+            training_config={"batch_size": 32, "learning_rate": 1e-4},
+            data_config={"dataset_size": 10000},
+            enable_tensorboard=True,
+            enable_dashboard=False,  # Disable GUI for testing
+            enable_wandb=False,  # Disable W&B for unit tests
+            log_level="INFO"
+        )
+        
+        # Verify components initialized
+        assert enhanced_logger.experiment_tracker is not None, "Experiment tracker should be initialized"
+        assert enhanced_logger.tensorboard_logger is not None, "TensorBoard logger should be initialized"
+        assert enhanced_logger.console_logger is not None, "Console logger should be initialized"
+        assert enhanced_logger.structured_logger is not None, "Structured logger should be initialized"
+        
+        print(f"   ✅ Enhanced logger initialized")
+        print(f"   ✅ Experiment ID: {enhanced_logger.experiment_id}")
+        print(f"   ✅ Save directory: {enhanced_logger.save_dir}")
+        
+        # Check log file creation
+        log_dir = enhanced_logger.save_dir / "logs"
+        assert log_dir.exists(), "Logs directory should be created"
+        
+        log_files = list(log_dir.glob("*.log"))
+        assert len(log_files) > 0, "Log file should be created"
+        
+        print(f"   ✅ Log file created: {log_files[0].name}")
+        
+        return True
+        
     except Exception as e:
         print(f"   ❌ Failed: {e}")
         import traceback

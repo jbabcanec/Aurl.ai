@@ -20,7 +20,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from src.data.dataset import LazyMidiDataset, create_dataloader
 from src.data.augmentation import MusicAugmenter, AugmentationConfig
 from src.data.representation import VocabularyConfig, PianoRollConfig
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 # from tests.conftest import create_test_midi_data
 
 logger = setup_logger(__name__)

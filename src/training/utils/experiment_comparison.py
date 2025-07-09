@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

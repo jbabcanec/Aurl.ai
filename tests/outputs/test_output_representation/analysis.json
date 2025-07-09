@@ -1,0 +1,94 @@
+{
+  "summary": {
+    "duration": 7.8,
+    "num_events": 168,
+    "num_tokens": 168,
+    "piano_roll_shape": [
+      500,
+      88
+    ],
+    "pitch_range": [
+      36,
+      72
+    ],
+    "velocity_range": [
+      60,
+      116
+    ],
+    "note_density": 4.615384615384616,
+    "num_instruments": 3,
+    "tempo_changes": 1,
+    "time_signature": "4/4"
+  },
+  "vocab_config": {
+    "vocab_size": 774,
+    "time_shift_ms": 15.625,
+    "velocity_bins": 32
+  },
+  "first_20_events": [
+    "START_TOKEN(val=0, ch=0, t=0.000)",
+    "VELOCITY_CHANGE(val=15, ch=0, t=0.000)",
+    "NOTE_ON(val=60, ch=0, t=0.000)",
+    "INSTRUMENT_CHANGE(val=1, ch=0, t=0.000)",
+    "VELOCITY_CHANGE(val=17, ch=1, t=0.000)",
+    "NOTE_ON(val=48, ch=1, t=0.000)",
+    "INSTRUMENT_CHANGE(val=2, ch=0, t=0.000)",
+    "VELOCITY_CHANGE(val=25, ch=2, t=0.000)",
+    "NOTE_ON(val=36, ch=2, t=0.000)",
+    "INSTRUMENT_CHANGE(val=0, ch=0, t=0.000)",
+    "TEMPO_CHANGE(val=13, ch=0, t=0.000)",
+    "TIME_SHIFT(val=6, ch=0, t=0.100)",
+    "INSTRUMENT_CHANGE(val=2, ch=0, t=0.100)",
+    "NOTE_OFF(val=36, ch=2, t=0.100)",
+    "TIME_SHIFT(val=19, ch=0, t=0.400)",
+    "INSTRUMENT_CHANGE(val=0, ch=0, t=0.400)",
+    "NOTE_OFF(val=60, ch=0, t=0.400)",
+    "TIME_SHIFT(val=6, ch=0, t=0.500)",
+    "VELOCITY_CHANGE(val=17, ch=0, t=0.500)",
+    "NOTE_ON(val=62, ch=0, t=0.500)"
+  ],
+  "first_20_tokens": [
+    0,
+    707,
+    43,
+    759,
+    709,
+    31,
+    760,
+    717,
+    19,
+    758,
+    739,
+    186,
+    760,
+    107,
+    199,
+    758,
+    131,
+    186,
+    709,
+    45
+  ],
+  "token_meanings": [
+    "Token 0: (<EventType.START_TOKEN: 10>, 0)",
+    "Token 1: (<EventType.VELOCITY_CHANGE: 3>, 15)",
+    "Token 2: (<EventType.NOTE_ON: 0>, 60)",
+    "Token 3: (<EventType.INSTRUMENT_CHANGE: 9>, 1)",
+    "Token 4: (<EventType.VELOCITY_CHANGE: 3>, 17)",
+    "Token 5: (<EventType.NOTE_ON: 0>, 48)",
+    "Token 6: (<EventType.INSTRUMENT_CHANGE: 9>, 2)",
+    "Token 7: (<EventType.VELOCITY_CHANGE: 3>, 25)",
+    "Token 8: (<EventType.NOTE_ON: 0>, 36)",
+    "Token 9: (<EventType.INSTRUMENT_CHANGE: 9>, 0)",
+    "Token 10: (<EventType.TEMPO_CHANGE: 6>, 13)",
+    "Token 11: (<EventType.TIME_SHIFT: 2>, 6)",
+    "Token 12: (<EventType.INSTRUMENT_CHANGE: 9>, 2)",
+    "Token 13: (<EventType.NOTE_OFF: 1>, 36)",
+    "Token 14: (<EventType.TIME_SHIFT: 2>, 19)",
+    "Token 15: (<EventType.INSTRUMENT_CHANGE: 9>, 0)",
+    "Token 16: (<EventType.NOTE_OFF: 1>, 60)",
+    "Token 17: (<EventType.TIME_SHIFT: 2>, 6)",
+    "Token 18: (<EventType.VELOCITY_CHANGE: 3>, 17)",
+    "Token 19: (<EventType.NOTE_ON: 0>, 62)"
+  ]
+}

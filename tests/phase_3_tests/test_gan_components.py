@@ -29,7 +29,7 @@ from src.models.gan_losses import (
     ProgressiveGANLoss
 )
 from src.models.music_transformer_vae_gan import MusicTransformerVAEGAN
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

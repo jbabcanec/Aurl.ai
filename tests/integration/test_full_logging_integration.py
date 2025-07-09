@@ -26,7 +26,7 @@ from src.training.losses import ComprehensiveLossFramework
 from src.training.trainer import TrainingConfig, AdvancedTrainer
 from src.data.dataset import LazyMidiDataset
 from src.utils.config import load_config
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

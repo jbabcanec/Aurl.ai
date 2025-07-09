@@ -19,7 +19,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from src.models.encoder import EnhancedMusicEncoder, LatentRegularizer
 from src.models.decoder import EnhancedMusicDecoder
 from src.models.vae_components import MusicalPrior, LatentAnalyzer, AdaptiveBeta
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

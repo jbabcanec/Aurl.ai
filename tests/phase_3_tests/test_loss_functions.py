@@ -21,14 +21,14 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.training.losses import (
+from src.training.core.losses import (
     PerceptualReconstructionLoss, AdaptiveKLScheduler, AdversarialStabilizer,
     MusicalConstraintLoss, MultiObjectiveLossBalancer, ComprehensiveLossFramework
 )
-from src.training.loss_visualization import LossMonitor, TrainingStabilityMonitor
+from src.training.monitoring.loss_visualization import LossMonitor, TrainingStabilityMonitor
 from src.models.music_transformer_vae_gan import MusicTransformerVAEGAN
 from src.models.discriminator import MultiScaleDiscriminator
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

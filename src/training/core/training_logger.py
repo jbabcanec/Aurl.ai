@@ -24,16 +24,16 @@ import numpy as np
 import logging
 from logging.handlers import RotatingFileHandler
 
-from src.training.experiment_tracker import (
+from src.training.core.experiment_tracker import (
     ComprehensiveExperimentTracker, DataUsageInfo, EpochSummary
 )
-from src.training.tensorboard_logger import TensorBoardLogger
-from src.training.realtime_dashboard import RealTimeDashboard, ConsoleLogger
-from src.training.wandb_integration import WandBIntegration
-from src.training.musical_quality_tracker import MusicalQualityTracker
-from src.training.anomaly_detector import EnhancedAnomalyDetector, AnomalySeverity
-from src.training.experiment_comparison import ExperimentComparator
-from src.utils.logger import setup_logger
+from src.training.monitoring.tensorboard_logger import TensorBoardLogger
+from src.training.monitoring.realtime_dashboard import RealTimeDashboard, ConsoleLogger
+from src.training.monitoring.wandb_integration import WandBIntegration
+from src.training.monitoring.musical_quality_tracker import MusicalQualityTracker
+from src.training.monitoring.anomaly_detector import EnhancedAnomalyDetector, AnomalySeverity
+from src.training.utils.experiment_comparison import ExperimentComparator
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

@@ -25,7 +25,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 from src.models.gan_losses import ComprehensiveGANLoss
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

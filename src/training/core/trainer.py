@@ -39,13 +39,13 @@ import json
 from datetime import datetime
 
 from src.models.music_transformer_vae_gan import MusicTransformerVAEGAN
-from src.training.losses import ComprehensiveLossFramework
-from src.training.loss_visualization import LossMonitor, TrainingStabilityMonitor
-from src.training.enhanced_logger import EnhancedTrainingLogger
-from src.training.experiment_tracker import DataUsageInfo
+from src.training.core.losses import ComprehensiveLossFramework
+from src.training.monitoring.loss_visualization import LossMonitor, TrainingStabilityMonitor
+from src.training.core.training_logger import EnhancedTrainingLogger
+from src.training.core.experiment_tracker import DataUsageInfo
 from src.data.dataset import LazyMidiDataset
 from src.utils.config import load_config
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

@@ -416,7 +416,7 @@ def test_data_representation():
         analyze_reversibility(midi_data, reconstructed_midi)
         
         # Save representations and analysis
-        output_dir = Path("test_output_representation")
+        output_dir = Path(__file__).parent.parent / "outputs" / "test_output_representation"
         print(f"💾 Saving representation data...")
         converter.save_representation(representation, output_dir)
         save_human_readable_analysis(representation, vocab_config, output_dir)

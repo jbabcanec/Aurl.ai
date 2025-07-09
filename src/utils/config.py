@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from omegaconf import OmegaConf, DictConfig
 import logging
 
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

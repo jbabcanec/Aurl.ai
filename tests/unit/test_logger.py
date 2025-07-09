@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from src.utils.logger import (
+from src.utils.base_logger import (
     setup_logger, get_experiment_logger, log_system_info,
     log_training_progress, log_model_info, ColoredFormatter
 )

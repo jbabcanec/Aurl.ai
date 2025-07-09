@@ -24,7 +24,7 @@ from src.models.attention import create_attention_layer
 from src.models.discriminator import MultiScaleDiscriminator
 from src.models.encoder import EnhancedMusicEncoder
 from src.models.decoder import EnhancedMusicDecoder
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

@@ -19,7 +19,7 @@ from src.data.midi_parser import load_midi_file
 from src.data.representation import MusicRepresentationConverter, VocabularyConfig
 from src.data.dataset import LazyMidiDataset
 from src.models import MusicTransformerVAEGAN
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

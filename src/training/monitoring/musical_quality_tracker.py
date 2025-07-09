@@ -19,7 +19,7 @@ import json
 from datetime import datetime
 from collections import deque
 
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 

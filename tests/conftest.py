@@ -85,6 +85,40 @@ def test_data_dir():
     return test_dir
 
 
+@pytest.fixture(scope="session")
+def test_outputs_dir():
+    """Create a session-wide test outputs directory."""
+    outputs_dir = Path(__file__).parent / "outputs"
+    
+    # Create all output subdirectories
+    subdirs = ["logs", "checkpoints", "tensorboard", "experiments", "artifacts", "samples"]
+    for subdir in subdirs:
+        (outputs_dir / subdir).mkdir(parents=True, exist_ok=True)
+    
+    return outputs_dir
+
+
+@pytest.fixture
+def test_experiment_dir(test_outputs_dir):
+    """Create a unique experiment directory for each test."""
+    import uuid
+    import datetime
+    
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    experiment_id = str(uuid.uuid4())[:8]
+    experiment_name = f"test_{timestamp}_{experiment_id}"
+    
+    experiment_dir = test_outputs_dir / "experiments" / experiment_name
+    experiment_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create subdirectories for this experiment
+    subdirs = ["logs", "checkpoints", "tensorboard", "artifacts", "samples"]
+    for subdir in subdirs:
+        (experiment_dir / subdir).mkdir(exist_ok=True)
+    
+    return experiment_dir
+
+
 # Test markers
 def pytest_configure(config):
     """Configure custom pytest markers."""

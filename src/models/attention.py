@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from typing import Optional, Tuple, Dict, Any
 import logging
 
-from src.utils.logger import setup_logger
+from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 
