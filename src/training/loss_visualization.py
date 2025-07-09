@@ -527,13 +527,29 @@ class TrainingStabilityMonitor:
         if not self.gradient_norms:
             return {'status': 'no_data'}
         
+        # Convert tensors to numpy safely (handle different devices)
+        gradient_norms_np = []
+        loss_values_np = []
+        
+        for norm in self.gradient_norms:
+            if isinstance(norm, torch.Tensor):
+                gradient_norms_np.append(norm.detach().cpu().numpy())
+            else:
+                gradient_norms_np.append(norm)
+        
+        for loss in self.loss_values:
+            if isinstance(loss, torch.Tensor):
+                loss_values_np.append(loss.detach().cpu().numpy())
+            else:
+                loss_values_np.append(loss)
+        
         report = {
             'status': 'stable',
             'metrics': {
-                'avg_gradient_norm': np.mean(self.gradient_norms),
-                'gradient_norm_std': np.std(self.gradient_norms),
-                'avg_loss': np.mean(self.loss_values),
-                'loss_std': np.std(self.loss_values),
+                'avg_gradient_norm': np.mean(gradient_norms_np) if gradient_norms_np else 0.0,
+                'gradient_norm_std': np.std(gradient_norms_np) if gradient_norms_np else 0.0,
+                'avg_loss': np.mean(loss_values_np) if loss_values_np else 0.0,
+                'loss_std': np.std(loss_values_np) if loss_values_np else 0.0,
                 'recent_warnings': len([w for w in self.stability_warnings if 
                                       len(self.gradient_norms) - w['step'] < 50])
             },

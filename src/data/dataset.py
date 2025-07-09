@@ -20,6 +20,7 @@ from src.data.representation import (
     MusicRepresentationConverter, MusicalRepresentation, 
     VocabularyConfig, PianoRollConfig, MusicalMetadata
 )
+from src.data.augmentation import MusicAugmenter, AugmentationConfig
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -47,7 +48,10 @@ class LazyMidiDataset(Dataset):
                  truncation_strategy: str = "sliding_window",
                  curriculum_learning: bool = False,
                  sequence_length_schedule: Optional[List[int]] = None,
-                 current_epoch: int = 0):
+                 current_epoch: int = 0,
+                 enable_augmentation: bool = True,
+                 augmentation_config: Optional[AugmentationConfig] = None,
+                 augmentation_probability: float = 0.5):
         """
         Initialize lazy MIDI dataset.
         
@@ -66,6 +70,9 @@ class LazyMidiDataset(Dataset):
             curriculum_learning: Enable progressive sequence length increase
             sequence_length_schedule: List of sequence lengths for curriculum learning
             current_epoch: Current training epoch (for curriculum learning)
+            enable_augmentation: Whether to enable on-the-fly data augmentation
+            augmentation_config: Configuration for data augmentation
+            augmentation_probability: Base probability of applying augmentation
         """
         self.data_dir = Path(data_dir)
         self.cache_dir = Path(cache_dir or (self.data_dir.parent / "cache"))
@@ -85,6 +92,19 @@ class LazyMidiDataset(Dataset):
         self.curriculum_learning = curriculum_learning
         self.sequence_length_schedule = sequence_length_schedule or [512, 1024, 2048]
         self.current_epoch = current_epoch
+        
+        # Augmentation setup
+        self.enable_augmentation = enable_augmentation
+        self.augmentation_probability = augmentation_probability
+        self.augmentation_config = augmentation_config or AugmentationConfig()
+        
+        # Initialize augmenter if enabled
+        if self.enable_augmentation:
+            self.augmenter = MusicAugmenter(self.augmentation_config)
+            logger.info(f"Augmentation enabled with probability {augmentation_probability}")
+        else:
+            self.augmenter = None
+            logger.info("Augmentation disabled")
         
         # Determine effective sequence length
         self.effective_sequence_length = self._get_effective_sequence_length()
@@ -134,17 +154,78 @@ class LazyMidiDataset(Dataset):
         return base_length
     
     def update_epoch(self, epoch: int):
-        """Update current epoch for curriculum learning."""
-        if self.curriculum_learning and epoch != self.current_epoch:
-            old_length = self.effective_sequence_length
+        """Update current epoch for curriculum learning and augmentation scheduling."""
+        if epoch != self.current_epoch:
+            old_epoch = self.current_epoch
             self.current_epoch = epoch
-            self.effective_sequence_length = self._get_effective_sequence_length()
             
-            if old_length != self.effective_sequence_length:
-                logger.info(f"Curriculum learning: Updated sequence length from {old_length} to {self.effective_sequence_length}")
-                # Rebuild sequence index with new length
-                self.sequences = []
-                self._build_sequence_index()
+            # Update curriculum learning if enabled
+            if self.curriculum_learning:
+                old_length = self.effective_sequence_length
+                self.effective_sequence_length = self._get_effective_sequence_length()
+                
+                if old_length != self.effective_sequence_length:
+                    logger.info(f"Curriculum learning: Updated sequence length from {old_length} to {self.effective_sequence_length}")
+                    # Rebuild sequence index with new length
+                    self.sequences = []
+                    self._build_sequence_index()
+            
+            # Update augmentation probability based on epoch (progressive augmentation)
+            if self.enable_augmentation:
+                self._update_augmentation_schedule()
+                
+            logger.debug(f"Dataset epoch updated: {old_epoch} -> {epoch}")
+    
+    def _update_augmentation_schedule(self):
+        """Update augmentation probability based on training progress."""
+        # Progressive augmentation: start with lower probability, increase over time
+        # This allows the model to learn basic patterns before adding complexity
+        base_prob = self.augmentation_probability
+        
+        # Increase augmentation probability over the first 20% of training
+        if self.current_epoch < 20:
+            # Start at 25% of base probability, linearly increase
+            schedule_factor = 0.25 + (0.75 * (self.current_epoch / 20))
+            current_prob = base_prob * schedule_factor
+        else:
+            # After epoch 20, use full augmentation probability
+            current_prob = base_prob
+        
+        # Update augmenter probability
+        if hasattr(self.augmenter, 'set_global_probability'):
+            self.augmenter.set_global_probability(current_prob)
+        
+        logger.debug(f"Augmentation probability updated to {current_prob:.3f} for epoch {self.current_epoch}")
+    
+    def get_augmentation_state(self) -> Dict[str, Any]:
+        """Get current augmentation state for checkpointing."""
+        if not self.enable_augmentation or not self.augmenter:
+            return {}
+        
+        return {
+            'enabled': self.enable_augmentation,
+            'probability': self.augmentation_probability,
+            'current_epoch': self.current_epoch,
+            'config': self.augmentation_config.__dict__ if self.augmentation_config else {},
+            'augmenter_state': getattr(self.augmenter, 'get_state', lambda: {})()
+        }
+    
+    def set_augmentation_state(self, state: Dict[str, Any]):
+        """Restore augmentation state from checkpoint."""
+        if not state or not self.enable_augmentation:
+            return
+        
+        self.augmentation_probability = state.get('probability', 0.5)
+        self.current_epoch = state.get('current_epoch', 0)
+        
+        if self.augmenter and 'augmenter_state' in state:
+            if hasattr(self.augmenter, 'set_state'):
+                self.augmenter.set_state(state['augmenter_state'])
+        
+        # Update augmentation schedule based on restored epoch
+        self._update_augmentation_schedule()
+        
+        logger.info(f"Restored augmentation state for epoch {self.current_epoch}")
     
     def _build_sequence_index(self):
         """Build an index of all sequences across all files."""
@@ -290,16 +371,46 @@ class LazyMidiDataset(Dataset):
         return len(self.sequences)
     
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        """Get a training sample."""
+        """Get a training sample with optional augmentation."""
         if idx >= len(self.sequences):
             raise IndexError(f"Index {idx} out of range for dataset of size {len(self.sequences)}")
         
         file_idx, start_idx, end_idx = self.sequences[idx]
         midi_file = self.midi_files[file_idx]
         
+        # Initialize augmentation tracking
+        augmentation_applied = {}
+        original_midi_data = None
+        
         try:
             # Load representation
             representation = self._load_representation(midi_file)
+            
+            # Apply augmentation if enabled and probability check passes
+            should_augment = (self.enable_augmentation and 
+                            self.augmenter is not None and 
+                            np.random.random() < self.augmentation_probability)
+            
+            if should_augment:
+                try:
+                    # Load original MIDI data for augmentation
+                    original_midi_data = load_midi_file(midi_file)
+                    
+                    # Apply augmentation
+                    augmented_midi, augmentation_applied = self.augmenter.augment(original_midi_data)
+                    
+                    # Convert augmented MIDI to representation
+                    representation = self.converter.midi_to_representation(augmented_midi)
+                    representation.metadata = MusicalMetadata(
+                        source_file=str(midi_file),
+                        title=midi_file.stem,
+                        augmented=True,
+                        augmentation_info=augmentation_applied
+                    )
+                    
+                except Exception as e:
+                    logger.warning(f"Augmentation failed for {midi_file}: {e}, using original")
+                    augmentation_applied = {}
             
             # Extract sequence
             if representation.tokens is not None and len(representation.tokens) > 0:
@@ -348,11 +459,13 @@ class LazyMidiDataset(Dataset):
                 sequence = np.array([0, 1] + [2] * (target_length - 2), dtype=np.int32)
                 piano_roll_segment = None
             
-            # Prepare return data
+            # Prepare return data with augmentation information
             result = {
                 'tokens': torch.from_numpy(sequence).long(),
                 'file_path': str(midi_file),
-                'sequence_idx': idx
+                'sequence_idx': idx,
+                'augmented': should_augment,
+                'augmentation_info': augmentation_applied
             }
             
             if piano_roll_segment is not None:
@@ -369,7 +482,9 @@ class LazyMidiDataset(Dataset):
             return {
                 'tokens': torch.from_numpy(fallback_tokens).long(),
                 'file_path': str(midi_file),
-                'sequence_idx': idx
+                'sequence_idx': idx,
+                'augmented': False,
+                'augmentation_info': {}
             }
     
     def get_file_statistics(self) -> Dict[str, Any]:
@@ -399,6 +514,19 @@ class LazyMidiDataset(Dataset):
         stats['curriculum_learning'] = self.curriculum_learning
         stats['current_epoch'] = self.current_epoch
         stats['vocab_size'] = self.vocab_config.vocab_size
+        
+        # Augmentation statistics
+        stats['augmentation_enabled'] = self.enable_augmentation
+        stats['augmentation_probability'] = self.augmentation_probability
+        if self.enable_augmentation and self.augmentation_config:
+            stats['augmentation_config'] = {
+                'transpose_range': self.augmentation_config.transpose_range,
+                'time_stretch_range': self.augmentation_config.time_stretch_range,
+                'velocity_scale_range': self.augmentation_config.velocity_scale_range,
+                'transpose_prob': self.augmentation_config.transpose_probability,
+                'time_stretch_prob': self.augmentation_config.time_stretch_probability,
+                'velocity_scale_prob': self.augmentation_config.velocity_scale_probability
+            }
         
         return stats
     
