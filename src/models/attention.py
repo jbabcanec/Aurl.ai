@@ -51,8 +51,9 @@ class MusicalPositionalEncoding(nn.Module):
             
             # Use part of embedding space for musical timing
             musical_dim = d_model // 4
-            pe[:, :musical_dim//2] += torch.sin(beat_positions * 2 * math.pi)
-            pe[:, musical_dim//2:musical_dim] += torch.cos(measure_positions * 2 * math.pi)
+            pe = pe.clone()  # Clone to avoid in-place operations
+            pe[:, :musical_dim//2] = pe[:, :musical_dim//2] + torch.sin(beat_positions * 2 * math.pi)
+            pe[:, musical_dim//2:musical_dim] = pe[:, musical_dim//2:musical_dim] + torch.cos(measure_positions * 2 * math.pi)
         
         self.register_buffer('pe', pe.unsqueeze(0))
     
@@ -151,12 +152,13 @@ class HierarchicalAttention(nn.Module):
         
         # Pad sequence to be divisible by window size
         padding = (window_size - seq_len % window_size) % window_size
+        
+        # Use conditional padding without torch.where to avoid dimension issues
         if padding > 0:
             x_padded = F.pad(x, (0, 0, 0, padding))
-            padded_len = seq_len + padding
         else:
             x_padded = x
-            padded_len = seq_len
+        padded_len = seq_len + padding
         
         # Reshape into windows [batch_size, n_windows, window_size, d_model]
         n_windows = padded_len // window_size
@@ -197,8 +199,8 @@ class HierarchicalAttention(nn.Module):
         
         # Concatenate windows and remove padding
         local_output = torch.cat(outputs, dim=1)
-        if padding > 0:
-            local_output = local_output[:, :seq_len]
+        # Use tensor slicing that preserves gradient flow
+        local_output = local_output[:, :seq_len].contiguous()
         
         return local_output
     
@@ -212,7 +214,7 @@ class HierarchicalAttention(nn.Module):
         # Downsample sequence by taking every stride-th token
         # This creates a coarse representation of the sequence
         global_indices = torch.arange(0, seq_len, stride, device=x.device)
-        global_context = x[:, global_indices]  # [batch_size, global_len, d_model]
+        global_context = x[:, global_indices].contiguous()  # [batch_size, global_len, d_model]
         global_len = global_context.size(1)
         
         # Apply standard attention on downsampled sequence
@@ -226,7 +228,7 @@ class HierarchicalAttention(nn.Module):
         # Apply global mask if provided
         if mask is not None:
             # Create global mask by downsampling
-            global_mask = mask[:, :, global_indices]
+            global_mask = mask[:, :, global_indices].contiguous()
             scores = scores + global_mask.unsqueeze(1)
         
         # Softmax and apply to values

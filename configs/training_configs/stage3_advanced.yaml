@@ -1,0 +1,118 @@
+# Stage 3: Advanced Training (VAE-GAN)
+# High-quality generation with VAE-GAN architecture
+
+model:
+  mode: "vae_gan"      # Full VAE-GAN for highest quality
+  d_model: 512         # Maximum capacity
+  n_layers: 8          # Deep architecture
+  n_heads: 8           # Full attention heads
+  dropout: 0.2         # Higher dropout for regularization
+  max_sequence_length: 2048  # Full sequence length capability
+  vocab_size: 774
+  
+  # VAE specific - full configuration
+  latent_dim: 256      # Large latent space for rich representations
+  encoder_layers: 6    # Deep encoder
+  decoder_layers: 6    # Deep decoder
+  beta: 1.5            # Higher beta for better disentanglement
+  
+  # GAN specific - high quality generation
+  discriminator_layers: 5
+  
+  # Advanced attention for full sequences
+  attention_type: "hierarchical"
+  local_window_size: 512
+  global_window_size: 256
+  sliding_window_size: 1024
+
+training:
+  batch_size: 4        # Smaller batch for VAE-GAN complexity
+  learning_rate: 1.0e-4  # Conservative for GAN stability
+  num_epochs: 50       # Extended training for quality
+  warmup_steps: 2000   # Long warmup for GAN stability
+  weight_decay: 1.0e-5
+  gradient_clip_norm: 0.5  # Tighter clipping for GAN
+  accumulate_grad_batches: 4  # Larger effective batch
+  
+  # Checkpointing
+  save_every_n_epochs: 5
+  keep_best_n_checkpoints: 5  # Keep more checkpoints for quality
+  
+  # Early stopping
+  early_stopping: true
+  patience: 15         # More patience for GAN convergence
+  min_delta: 1.0e-5    # Fine-grained improvements
+  
+  # Scheduling
+  scheduler: "cosine"
+  min_learning_rate: 1.0e-7
+  
+  # Mixed precision
+  mixed_precision: false
+  
+  # Loss weights - balanced for VAE-GAN
+  reconstruction_weight: 1.0
+  kl_weight: 0.5       # Lower KL weight to allow more expressive latent space
+  adversarial_weight: 0.3  # Moderate adversarial weight
+
+data:
+  sequence_length: 2048    # Full sequence capability
+  overlap: 512
+  min_sequence_length: 256
+  
+  # Preprocessing
+  normalize_velocity: true
+  quantize_timing: true
+  quantization_level: 1.0
+  
+  # ENHANCED AUGMENTATION for Stage 3 - maximum diversity
+  augmentation:
+    transpose: true
+    transpose_range: [-8, 8]      # Extended range
+    time_stretch: true
+    time_stretch_range: [0.8, 1.2]  # Wider tempo variation
+    velocity_scale: true
+    velocity_scale_range: [0.6, 1.4]  # Wider dynamic range
+    instrument_substitution: true
+    substitution_probability: 0.4  # More substitution
+    rhythmic_variation: true
+    swing_amount: 0.15     # More swing variation
+    pitch_bend: true       # Additional augmentation
+    bend_range: 0.5
+    probability: 0.8       # 80% augmentation rate
+  
+  # Caching
+  cache_processed_data: true
+  cache_size_gb: 12      # Maximum cache for full augmentation
+  num_workers: 8
+
+experiment:
+  name: "stage3_advanced_vae_gan"
+  group: "aurl_training_pipeline"
+  tags: ["stage3", "vae_gan", "advanced", "high_quality"]
+  notes: "Stage 3: Advanced VAE-GAN training for highest quality generation"
+  
+  # Tracking
+  use_wandb: false
+  use_tensorboard: true
+  tensorboard_log_dir: "logs/tensorboard/stage3"
+  
+  # Logging
+  log_every_n_steps: 100  # Less frequent logging for complex training
+  save_samples_every_n_epochs: 5
+
+system:
+  device: "auto"
+  gpu_ids: [0]
+  num_workers: 8
+  pin_memory: true
+  
+  # Paths
+  data_dir: "data/raw"
+  cache_dir: "data/cache"
+  output_dir: "outputs"
+  log_dir: "logs"
+  
+  # Reproducibility
+  seed: 456            # Different seed for final stage
+  deterministic: false  # Allow full randomness for creativity

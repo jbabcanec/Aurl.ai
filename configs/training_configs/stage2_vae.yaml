@@ -1,0 +1,119 @@
+# Stage 2: Transformer + VAE Training
+# Add latent variable modeling to the transformer
+# This stage introduces the VAE components without GAN
+
+model:
+  mode: "vae"  # Transformer + VAE, no GAN yet
+  hidden_dim: 256
+  num_layers: 4
+  num_heads: 4
+  dropout: 0.1
+  max_sequence_length: 512
+  vocab_size: 774
+  
+  # VAE specific
+  latent_dim: 66  # Divisible by 3 for hierarchical VAE
+  encoder_layers: 3
+  decoder_layers: 3
+  beta: 0.5  # Start with moderate beta for VAE
+  
+  # Use hierarchical VAE features
+  use_hierarchical_latent: true
+  hierarchical_levels: 3
+  
+  # Attention configuration
+  attention_type: "hierarchical"  # Upgrade to hierarchical
+  local_window_size: 64
+  global_window_size: 32
+  
+training:
+  batch_size: 6  # Slightly smaller due to VAE overhead
+  learning_rate: 3.0e-4  # Lower LR for fine-tuning
+  num_epochs: 30
+  warmup_steps: 1000
+  weight_decay: 1.0e-5
+  gradient_clip_norm: 1.0
+  
+  # Cosine schedule works well with VAE
+  scheduler: "cosine"
+  min_learning_rate: 1.0e-6
+  
+  # Mixed precision
+  mixed_precision: true
+  
+  # Loss weights - introduce KL gradually
+  reconstruction_weight: 1.0
+  kl_weight: 0.1  # Start low
+  kl_annealing_epochs: 10  # Gradually increase KL weight
+  
+  # Free bits to prevent posterior collapse
+  free_bits: 0.25
+  
+  # Checkpointing
+  save_every_n_epochs: 5
+  keep_best_n_checkpoints: 3
+  
+  # Continue from stage 1 checkpoint
+  resume_from: "outputs/stage1/checkpoints/stage1_final.pt"
+  load_weights_only: true  # Only load compatible weights
+  
+  # Early stopping based on ELBO
+  early_stopping: true
+  patience: 7
+  min_delta: 1.0e-4
+
+data:
+  sequence_length: 512
+  overlap: 128
+  min_sequence_length: 64
+  
+  # Preprocessing
+  normalize_velocity: true
+  quantize_timing: true
+  quantization_level: 1.0
+  
+  # Moderate augmentation for stage 2
+  augmentation:
+    transpose: true
+    transpose_range: [-6, 6]  # Wider range
+    time_stretch: true  # Enable time stretching
+    time_stretch_range: [0.9, 1.1]
+    velocity_scale: true
+    velocity_scale_range: [0.8, 1.2]
+    probability: 0.3  # Moderate augmentation
+  
+  # Caching
+  cache_processed_data: true
+  cache_size_gb: 2
+  num_workers: 4
+
+experiment:
+  name: "stage2_vae"
+  group: "aurl_progressive_training"
+  tags: ["stage2", "vae", "latent_modeling"]
+  notes: "Stage 2: Add VAE components for latent variable modeling"
+  
+  # Logging
+  use_tensorboard: true
+  tensorboard_log_dir: "logs/tensorboard/stage2"
+  log_every_n_steps: 50
+  save_samples_every_n_epochs: 5
+  
+  # Track VAE-specific metrics
+  log_latent_stats: true
+  log_posterior_collapse: true
+
+system:
+  device: "auto"
+  num_workers: 4
+  pin_memory: true
+  
+  # Paths
+  data_dir: "data/raw"
+  cache_dir: "data/cache"
+  output_dir: "outputs/stage2"
+  log_dir: "logs/stage2"
+  
+  # Reproducibility
+  seed: 42
+  deterministic: true

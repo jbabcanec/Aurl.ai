@@ -397,7 +397,7 @@ class LazyMidiDataset(Dataset):
                     original_midi_data = load_midi_file(midi_file)
                     
                     # Apply augmentation
-                    augmented_midi, augmentation_applied = self.augmenter.augment(original_midi_data)
+                    augmented_midi, augmentation_applied = self.augmenter.augment(original_midi_data, self.current_epoch)
                     
                     # Convert augmented MIDI to representation
                     representation = self.converter.midi_to_representation(augmented_midi)
@@ -541,55 +541,69 @@ class LazyMidiDataset(Dataset):
             logger.info("Cache cleared")
 
 
+def midi_collate_fn(batch):
+    """Custom collate function to handle variable-length piano rolls."""
+    tokens = torch.stack([item['tokens'] for item in batch])
+    file_paths = [item['file_path'] for item in batch]
+    sequence_indices = torch.tensor([item['sequence_idx'] for item in batch])
+    
+    # Handle augmentation metadata
+    augmented = torch.tensor([item.get('augmented', False) for item in batch], dtype=torch.bool)
+    augmentation_info = [item.get('augmentation_info', {}) for item in batch]
+    
+    result = {
+        'tokens': tokens,
+        'file_paths': file_paths,
+        'sequence_indices': sequence_indices,
+        'augmented': augmented,
+        'augmentation_info': augmentation_info
+    }
+    
+    # Handle piano roll if present
+    if 'piano_roll' in batch[0] and batch[0]['piano_roll'] is not None:
+        # Find max time dimension and verify pitch dimensions match
+        max_time = max(item['piano_roll'].shape[0] for item in batch 
+                      if 'piano_roll' in item and item['piano_roll'] is not None)
+        
+        # Get pitch dimension from first non-None piano roll
+        pitch_dim = next(item['piano_roll'].shape[1] for item in batch 
+                        if 'piano_roll' in item and item['piano_roll'] is not None)
+        
+        # Pad piano rolls to same time dimension
+        piano_rolls = []
+        for item in batch:
+            if 'piano_roll' in item and item['piano_roll'] is not None:
+                pr = item['piano_roll']
+                # Verify pitch dimensions match
+                if pr.shape[1] != pitch_dim:
+                    raise ValueError(f"Piano roll pitch dimension mismatch: {pr.shape[1]} vs {pitch_dim}")
+                
+                if pr.shape[0] < max_time:
+                    # Pad with zeros
+                    pad_shape = (max_time - pr.shape[0], pr.shape[1])
+                    padding = torch.zeros(pad_shape, dtype=pr.dtype)
+                    pr = torch.cat([pr, padding], dim=0)
+                piano_rolls.append(pr)
+            else:
+                # Create empty piano roll with correct pitch dimension
+                piano_rolls.append(torch.zeros((max_time, pitch_dim), dtype=torch.float32))
+        
+        result['piano_roll'] = torch.stack(piano_rolls)
+    
+    return result
+
+
 def create_dataloader(dataset: LazyMidiDataset,
                      batch_size: int = 32,
                      shuffle: bool = True,
                      num_workers: int = 4,
                      pin_memory: bool = True) -> DataLoader:
     """Create a DataLoader for the MIDI dataset."""
-    
-    def collate_fn(batch):
-        """Custom collate function to handle variable-length piano rolls."""
-        tokens = torch.stack([item['tokens'] for item in batch])
-        file_paths = [item['file_path'] for item in batch]
-        sequence_indices = torch.tensor([item['sequence_idx'] for item in batch])
-        
-        result = {
-            'tokens': tokens,
-            'file_paths': file_paths,
-            'sequence_indices': sequence_indices
-        }
-        
-        # Handle piano roll if present
-        if 'piano_roll' in batch[0] and batch[0]['piano_roll'] is not None:
-            # Find max time dimension
-            max_time = max(item['piano_roll'].shape[0] for item in batch 
-                          if 'piano_roll' in item and item['piano_roll'] is not None)
-            
-            # Pad piano rolls to same time dimension
-            piano_rolls = []
-            for item in batch:
-                if 'piano_roll' in item and item['piano_roll'] is not None:
-                    pr = item['piano_roll']
-                    if pr.shape[0] < max_time:
-                        # Pad with zeros
-                        pad_shape = (max_time - pr.shape[0], pr.shape[1])
-                        padding = torch.zeros(pad_shape, dtype=pr.dtype)
-                        pr = torch.cat([pr, padding], dim=0)
-                    piano_rolls.append(pr)
-                else:
-                    # Create empty piano roll
-                    piano_rolls.append(torch.zeros((max_time, 88), dtype=torch.float32))
-            
-            result['piano_roll'] = torch.stack(piano_rolls)
-        
-        return result
-    
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=pin_memory,
-        collate_fn=collate_fn
+        collate_fn=midi_collate_fn
     )

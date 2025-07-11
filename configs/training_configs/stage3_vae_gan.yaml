@@ -1,0 +1,150 @@
+# Stage 3: Full VAE-GAN Training
+# Add adversarial training to the VAE model
+# This is the final stage with all components active
+
+model:
+  mode: "vae_gan"  # Full model with all components
+  hidden_dim: 256
+  num_layers: 4
+  num_heads: 4
+  dropout: 0.1
+  max_sequence_length: 512
+  vocab_size: 774
+  
+  # VAE configuration (inherited from stage 2)
+  latent_dim: 66
+  encoder_layers: 3
+  decoder_layers: 3
+  beta: 1.0  # Full beta-VAE
+  
+  # Hierarchical VAE
+  use_hierarchical_latent: true
+  hierarchical_levels: 3
+  
+  # GAN specific
+  discriminator_layers: 3
+  discriminator_hidden_dim: 128
+  spectral_norm: true  # For stable GAN training
+  discriminator_dropout: 0.2
+  
+  # Multi-scale discriminator
+  discriminator_scales: [1, 4, 16]  # Note, phrase, section levels
+  
+  # Advanced attention for final stage
+  attention_type: "hierarchical"
+  local_window_size: 64
+  global_window_size: 32
+  flash_attention: true  # Enable if available
+  
+training:
+  batch_size: 4  # Smaller due to discriminator overhead
+  learning_rate: 1.0e-4  # Lower LR for GAN stability
+  num_epochs: 50
+  warmup_steps: 2000
+  weight_decay: 1.0e-5
+  gradient_clip_norm: 0.5  # Tighter clipping for GAN
+  
+  # Plateau scheduler for fine control
+  scheduler: "plateau"
+  min_learning_rate: 1.0e-7
+  
+  # Mixed precision
+  mixed_precision: true
+  
+  # Loss weights - carefully balanced
+  reconstruction_weight: 1.0
+  kl_weight: 0.5
+  adversarial_weight: 0.05  # Start very low for GAN
+  feature_matching_weight: 0.1
+  perceptual_weight: 0.1
+  
+  # GAN-specific training settings
+  discriminator_steps: 1  # Train D once per G step
+  generator_steps: 1
+  adversarial_warmup_epochs: 5  # Delay GAN training
+  
+  # Progressive GAN weight increase
+  adversarial_weight_schedule: "linear"
+  adversarial_weight_max: 0.2
+  adversarial_weight_epochs: 20
+  
+  # Checkpointing
+  save_every_n_epochs: 5
+  keep_best_n_checkpoints: 5  # Keep more for GAN
+  
+  # Continue from stage 2 checkpoint
+  resume_from: "outputs/stage2/checkpoints/stage2_final.pt"
+  load_weights_only: true
+  
+  # Early stopping with multiple metrics
+  early_stopping: true
+  patience: 10
+  min_delta: 1.0e-4
+  monitor_metric: "total_loss"  # Can also use "musical_quality"
+
+data:
+  sequence_length: 512
+  overlap: 128
+  min_sequence_length: 64
+  
+  # Preprocessing
+  normalize_velocity: true
+  quantize_timing: true
+  quantization_level: 1.0
+  
+  # Full augmentation for final stage
+  augmentation:
+    transpose: true
+    transpose_range: [-12, 12]  # Full octave range
+    time_stretch: true
+    time_stretch_range: [0.8, 1.2]
+    velocity_scale: true
+    velocity_scale_range: [0.7, 1.3]
+    instrument_substitute: true  # Enable instrument substitution
+    rhythmic_variation: true  # Enable rhythm variations
+    probability: 0.5  # Strong augmentation for robustness
+  
+  # Curriculum learning for GAN
+  curriculum_learning: true
+  curriculum_start_length: 256
+  curriculum_end_length: 512
+  curriculum_epochs: 10
+  
+  # Caching
+  cache_processed_data: true
+  cache_size_gb: 4  # Larger cache for GAN training
+  num_workers: 4
+
+experiment:
+  name: "stage3_vae_gan"
+  group: "aurl_progressive_training"
+  tags: ["stage3", "vae_gan", "adversarial", "final"]
+  notes: "Stage 3: Full VAE-GAN with adversarial training"
+  
+  # Comprehensive logging
+  use_tensorboard: true
+  tensorboard_log_dir: "logs/tensorboard/stage3"
+  log_every_n_steps: 25  # More frequent for GAN monitoring
+  save_samples_every_n_epochs: 2
+  
+  # Track all metrics
+  log_latent_stats: true
+  log_posterior_collapse: true
+  log_discriminator_stats: true
+  log_gradient_norms: true
+  log_adversarial_balance: true
+
+system:
+  device: "auto"
+  num_workers: 4
+  pin_memory: true
+  
+  # Paths
+  data_dir: "data/raw"
+  cache_dir: "data/cache"
+  output_dir: "outputs/stage3"
+  log_dir: "logs/stage3"
+  
+  # Reproducibility (less strict for GAN)
+  seed: 42
+  deterministic: false  # GAN benefits from some randomness

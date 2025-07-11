@@ -1,0 +1,94 @@
+# Stage 1: Transformer-only Training
+# Simple autoregressive modeling to establish baseline
+# This stage focuses on basic sequence modeling without VAE or GAN components
+
+model:
+  mode: "transformer"  # Only use transformer, no VAE or GAN
+  hidden_dim: 256
+  num_layers: 4
+  num_heads: 4
+  dropout: 0.1
+  max_sequence_length: 512
+  vocab_size: 774
+  
+  # Attention configuration
+  attention_type: "standard"  # Start with standard attention
+  flash_attention: false  # Disable for debugging
+  
+training:
+  batch_size: 8  # Larger batch since transformer-only is simpler
+  learning_rate: 5.0e-4
+  num_epochs: 20
+  warmup_steps: 500
+  weight_decay: 1.0e-5
+  gradient_clip_norm: 1.0
+  
+  # Simple learning rate schedule
+  scheduler: "linear"
+  min_learning_rate: 1.0e-6
+  
+  # Mixed precision (works on CUDA, disabled on CPU/MPS)
+  mixed_precision: true
+  
+  # Loss is just reconstruction
+  reconstruction_weight: 1.0
+  
+  # Checkpointing
+  save_every_n_epochs: 5
+  keep_best_n_checkpoints: 3
+  
+  # Early stopping based on reconstruction loss
+  early_stopping: true
+  patience: 5
+  min_delta: 1.0e-4
+
+data:
+  sequence_length: 512
+  overlap: 128
+  min_sequence_length: 64
+  
+  # Preprocessing
+  normalize_velocity: true
+  quantize_timing: true
+  quantization_level: 1.0
+  
+  # Light augmentation for stage 1
+  augmentation:
+    transpose: true
+    transpose_range: [-3, 3]
+    time_stretch: false  # Disabled for simplicity
+    velocity_scale: true
+    velocity_scale_range: [0.9, 1.1]
+    probability: 0.2  # Light augmentation
+  
+  # Caching
+  cache_processed_data: true
+  cache_size_gb: 2
+  num_workers: 4
+
+experiment:
+  name: "stage1_transformer"
+  group: "aurl_progressive_training"
+  tags: ["stage1", "transformer", "baseline"]
+  notes: "Stage 1: Establish transformer baseline with simple autoregressive modeling"
+  
+  # Logging
+  use_tensorboard: true
+  tensorboard_log_dir: "logs/tensorboard/stage1"
+  log_every_n_steps: 50
+  save_samples_every_n_epochs: 5
+
+system:
+  device: "auto"
+  num_workers: 4
+  pin_memory: true
+  
+  # Paths
+  data_dir: "data/raw"
+  cache_dir: "data/cache"
+  output_dir: "outputs/stage1"
+  log_dir: "logs/stage1"
+  
+  # Reproducibility
+  seed: 42
+  deterministic: true

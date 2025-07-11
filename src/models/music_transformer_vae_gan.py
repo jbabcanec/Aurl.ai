@@ -423,20 +423,23 @@ class MusicTransformerVAEGAN(nn.Module):
         elif self.mode in ["vae", "vae_gan"]:
             # VAE forward pass
             # Encode
-            mu, logvar = self.encoder(embeddings, mask)
-            
-            # Reparameterize
-            z = self.reparameterize(mu, logvar)
+            encoder_output = self.encoder(embeddings, mask)
+            mu = encoder_output['mu']
+            logvar = encoder_output['logvar']
+            z = encoder_output['z']
+            kl_loss = encoder_output['kl_loss']
             
             # Decode
             logits = self.decoder(z, embeddings, mask)
             
             if return_latent:
                 return {
+                    'reconstruction': logits,  # Tests expect 'reconstruction' key
                     'logits': logits,
                     'mu': mu,
                     'logvar': logvar,
-                    'z': z
+                    'z': z,
+                    'kl_loss': kl_loss
                 }
             else:
                 return logits
@@ -493,8 +496,8 @@ class MusicTransformerVAEGAN(nn.Module):
                 reduction='mean'
             )
             
-            # KL divergence loss
-            kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / mu.size(0)
+            # KL divergence loss (already computed in encoder)
+            kl_loss = outputs.get('kl_loss', -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / mu.size(0))
             
             # Total VAE loss
             vae_loss = recon_loss + self.beta * kl_loss
@@ -506,9 +509,27 @@ class MusicTransformerVAEGAN(nn.Module):
             }
             
             if self.mode == "vae_gan":
-                # GAN losses would be computed externally in training loop
-                # since they require both generator and discriminator
-                pass
+                # Add basic GAN losses for compatibility
+                # More sophisticated GAN training happens in the loss framework
+                with torch.no_grad():
+                    fake_tokens = torch.multinomial(
+                        F.softmax(logits.view(-1, self.vocab_size), dim=-1),
+                        num_samples=1
+                    ).view(tokens.shape)
+                    
+                embeddings = self.embedding(tokens)
+                real_score = self.discriminator(embeddings, mask).mean()
+                fake_embeddings = self.embedding(fake_tokens)
+                fake_score = self.discriminator(fake_embeddings, mask).mean()
+                
+                # Simple GAN losses
+                generator_loss = -fake_score  # Generator wants high fake score
+                discriminator_loss = real_score - fake_score  # Discriminator wants real > fake
+                
+                losses.update({
+                    'generator_loss': generator_loss,
+                    'discriminator_loss': discriminator_loss
+                })
             
             return losses
     
