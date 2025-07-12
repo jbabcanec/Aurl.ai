@@ -1,11 +1,44 @@
 # Quick test training configuration
 # For rapid prototyping and testing
+# Inherits from default.yaml and overrides specific values
+
+# Model configuration (minimal for quick test)
+model:
+  mode: "transformer"  # Use transformer mode for reliability
+  hidden_dim: 128  # Much smaller for speed
+  num_layers: 2    # Minimal layers for quick test
+  num_heads: 2     # Minimal heads for quick test
+  dropout: 0.1
+  max_sequence_length: 256  # Much shorter sequences for speed
+  vocab_size: 774
+  
+  # VAE specific
+  latent_dim: 33   # Must be divisible by 3 for hierarchical mode
+  encoder_layers: 2
+  decoder_layers: 2
+  beta: 0.5  # Lower beta for faster convergence
+  
+  # GAN specific
+  discriminator_layers: 2
+  discriminator_hidden_dim: 64
+  spectral_norm: true
+  
+  # Attention specific
+  attention_type: "hierarchical"
+  relative_position_embedding: true
+  flash_attention: true
+  local_window_size: 64
+  global_window_size: 32
+  sliding_window_size: 128
 
 training:
-  batch_size: 16
+  batch_size: 2  # Ultra small for speed
   learning_rate: 5.0e-4
-  num_epochs: 5
-  warmup_steps: 50
+  num_epochs: 2  # Just 2 epochs for quick test
+  warmup_steps: 20  # Much shorter warmup
+  weight_decay: 1.0e-5
+  gradient_clip_norm: 0.5
+  accumulate_grad_batches: 1
   
   # Quick checkpointing
   save_every_n_epochs: 1
@@ -13,17 +46,79 @@ training:
   
   # No early stopping for quick tests
   early_stopping: false
+  patience: 5
+  min_delta: 1.0e-4
   
   # Faster convergence settings
   scheduler: "linear"
-  gradient_clip_norm: 0.5
+  min_learning_rate: 1.0e-6
+  
+  # Mixed precision - disabled for MPS compatibility
+  mixed_precision: false
+  
+  # Loss weights
+  reconstruction_weight: 1.0
+  kl_weight: 1.0
+  adversarial_weight: 0.1
 
 data:
-  sequence_length: 512
-  num_workers: 2
+  sequence_length: 256  # Much shorter for speed
+  overlap: 64
+  min_sequence_length: 64
+  
+  # Preprocessing
+  normalize_velocity: true
+  quantize_timing: true
+  quantization_level: 1.0
+  
+  # Augmentation - disabled for quick test to use preprocessed cache
+  augmentation:
+    transpose: false
+    transpose_range: [-3, 3]  # Smaller range for quick test
+    time_stretch: false
+    time_stretch_range: [0.95, 1.05]  # Smaller range for quick test
+    velocity_scale: false
+    velocity_scale_range: [0.9, 1.1]  # Smaller range for quick test
+    probability: 0.0  # Disabled for quick test
+  
+  # Caching
+  cache_processed_data: true
   cache_size_gb: 1
+  num_workers: 2
 
 experiment:
   name: "quick_test"
+  group: "aurl_ai"
+  tags: ["quick_test", "validation"]
+  notes: "Quick 5-epoch test for validation"
+  
+  # Tracking backends
+  use_wandb: false
+  wandb_project: "aurl_ai"
+  wandb_entity: null
+  
+  use_tensorboard: true
+  tensorboard_log_dir: "logs/tensorboard"
+  
+  use_mlflow: false
+  mlflow_tracking_uri: "http://localhost:5000"
+  
+  # Logging frequency
   log_every_n_steps: 5
   save_samples_every_n_epochs: 1
+
+system:
+  device: "auto"
+  gpu_ids: [0]
+  num_workers: 2
+  pin_memory: true
+  
+  # Paths
+  data_dir: "data/raw"
+  cache_dir: "data/cache"
+  output_dir: "outputs"
+  log_dir: "logs"
+  
+  # Random seed
+  seed: 42  # Fixed seed for reproducible quick tests
+  deterministic: true

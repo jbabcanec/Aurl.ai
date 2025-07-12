@@ -301,6 +301,10 @@ class MusicalMetadata:
     processing_date: Optional[str] = None
     processing_version: Optional[str] = None
     
+    # Augmentation metadata
+    augmented: bool = False
+    augmentation_info: Dict[str, Any] = field(default_factory=dict)
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -317,7 +321,9 @@ class MusicalMetadata:
             "emotion_tags": self.emotion_tags,
             "source_file": self.source_file,
             "processing_date": self.processing_date,
-            "processing_version": self.processing_version
+            "processing_version": self.processing_version,
+            "augmented": self.augmented,
+            "augmentation_info": self.augmentation_info
         }
 
 

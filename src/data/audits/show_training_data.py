@@ -83,7 +83,7 @@ def show_training_data_example():
         
         # Show actual tensor values
         print(f"\n   Raw tensor (first 20 values):")
-        print(f"   {sample['tokens'][:20].numpy()}")
+        print(f"   {sample['tokens'][:20].detach().cpu().numpy()}")
         
         # Create a mini batch
         dataloader = create_dataloader(dataset, batch_size=4, shuffle=False, num_workers=0)

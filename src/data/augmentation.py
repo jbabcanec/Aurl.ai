@@ -7,7 +7,7 @@ without storing millions of preprocessed files.
 
 import numpy as np
 import random
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Tuple, Optional, Union, Any
 from dataclasses import dataclass
 from enum import Enum
 import logging
@@ -149,35 +149,76 @@ class TimeStretcher:
         if factor == 1.0:
             return midi_data
         
-        # Create stretched copy
-        stretched_data = MidiData(
-            instruments=[],
-            tempo_changes=[(t * factor, tempo / factor) for t, tempo in midi_data.tempo_changes],
-            time_signature_changes=[(t * factor, num, den) for t, num, den in midi_data.time_signature_changes],
-            key_signature_changes=[(t * factor, key) for t, key in midi_data.key_signature_changes],
-            resolution=midi_data.resolution,
-            end_time=midi_data.end_time * factor,
-            filename=f"{midi_data.filename}_stretch{factor:.2f}"
-        )
+        # Ensure factor is a numeric type
+        factor = float(factor)
+        
+        # Create stretched copy with error handling
+        try:
+            tempo_changes = []
+            for t, tempo in midi_data.tempo_changes:
+                tempo_changes.append((float(t) * factor, float(tempo) / factor))
+            
+            time_signature_changes = []
+            for t, num, den in midi_data.time_signature_changes:
+                time_signature_changes.append((float(t) * factor, num, den))
+            
+            key_signature_changes = []
+            for t, key in midi_data.key_signature_changes:
+                key_signature_changes.append((float(t) * factor, key))
+            
+            stretched_data = MidiData(
+                instruments=[],
+                tempo_changes=tempo_changes,
+                time_signature_changes=time_signature_changes,
+                key_signature_changes=key_signature_changes,
+                resolution=midi_data.resolution,
+                end_time=float(midi_data.end_time) * factor,
+                filename=f"{midi_data.filename}_stretch{factor:.2f}"
+            )
+        except Exception as e:
+            self.logger.error(f"Error in time stretch data preparation: {e}")
+            raise
         
         for instrument in midi_data.instruments:
             stretched_notes = []
             
             for note in instrument.notes:
-                stretched_notes.append(MidiNote(
-                    pitch=note.pitch,
-                    velocity=note.velocity,
-                    start=note.start * factor,
-                    end=note.end * factor
-                ))
+                try:
+                    stretched_notes.append(MidiNote(
+                        pitch=note.pitch,
+                        velocity=note.velocity,
+                        start=float(note.start) * factor,
+                        end=float(note.end) * factor
+                    ))
+                except Exception as e:
+                    self.logger.warning(f"Error stretching note: {e}, skipping")
+                    continue
+            
+            # Handle pitch bends with error checking
+            stretched_pitch_bends = []
+            for t, value in instrument.pitch_bends:
+                try:
+                    stretched_pitch_bends.append((float(t) * factor, value))
+                except Exception as e:
+                    self.logger.warning(f"Error stretching pitch bend: {e}, skipping")
+                    continue
+            
+            # Handle control changes with error checking
+            stretched_control_changes = []
+            for t, cc, value in instrument.control_changes:
+                try:
+                    stretched_control_changes.append((float(t) * factor, cc, value))
+                except Exception as e:
+                    self.logger.warning(f"Error stretching control change: {e}, skipping")
+                    continue
             
             stretched_data.instruments.append(MidiInstrument(
                 program=instrument.program,
                 is_drum=instrument.is_drum,
                 name=instrument.name,
                 notes=stretched_notes,
-                pitch_bends=[(t * factor, value) for t, value in instrument.pitch_bends],
-                control_changes=[(t * factor, cc, value) for t, cc, value in instrument.control_changes]
+                pitch_bends=stretched_pitch_bends,
+                control_changes=stretched_control_changes
             ))
         
         return stretched_data
@@ -512,7 +553,7 @@ class MusicAugmenter:
             random.seed(self.config.seed)
             np.random.seed(self.config.seed)
     
-    def augment(self, midi_data: MidiData, epoch: int = 0) -> MidiData:
+    def augment(self, midi_data: MidiData, epoch: int = 0) -> Tuple[MidiData, Dict[str, Any]]:
         """
         Apply augmentations to MIDI data based on configuration and schedule.
         
@@ -521,7 +562,7 @@ class MusicAugmenter:
             epoch: Current training epoch (for scheduling)
             
         Returns:
-            Augmented MIDI data
+            Tuple of (augmented MIDI data, augmentation info dict)
         """
         # Calculate probability multiplier based on epoch
         prob_multiplier = self._get_probability_multiplier(epoch)
@@ -530,7 +571,7 @@ class MusicAugmenter:
         selected_augmentations = self._select_augmentations(prob_multiplier)
         
         if not selected_augmentations:
-            return midi_data
+            return midi_data, {}
         
         # Apply selected augmentations in sequence
         augmented_data = midi_data
@@ -570,7 +611,14 @@ class MusicAugmenter:
         if applied_augmentations:
             augmented_data.filename = f"{midi_data.filename}_aug_{'_'.join(applied_augmentations)}"
         
-        return augmented_data
+        # Return augmented data and info about what was applied
+        augmentation_info = {
+            "applied_augmentations": applied_augmentations,
+            "epoch": epoch,
+            "probability_multiplier": prob_multiplier
+        }
+        
+        return augmented_data, augmentation_info
     
     def _get_probability_multiplier(self, epoch: int) -> float:
         """Calculate probability multiplier based on training schedule."""

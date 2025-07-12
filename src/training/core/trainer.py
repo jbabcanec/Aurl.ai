@@ -43,7 +43,7 @@ from src.training.core.losses import ComprehensiveLossFramework
 from src.training.monitoring.loss_visualization import LossMonitor, TrainingStabilityMonitor
 from src.training.core.training_logger import EnhancedTrainingLogger
 from src.training.core.experiment_tracker import DataUsageInfo
-from src.data.dataset import LazyMidiDataset
+from src.data.dataset import LazyMidiDataset, create_dataloader, midi_collate_fn
 from src.utils.config import load_config
 from src.utils.base_logger import setup_logger
 
@@ -378,18 +378,8 @@ class AdvancedTrainer:
         logger.info(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
         
     def _setup_device(self) -> torch.device:
-        """Setup training device."""
-        if torch.cuda.is_available():
-            if self.config.distributed:
-                device = torch.device(f"cuda:{self.config.local_rank}")
-            else:
-                device = torch.device("cuda")
-        elif torch.backends.mps.is_available():
-            device = torch.device("mps")
-        else:
-            device = torch.device("cpu")
-            
-        return device
+        """Setup training device - force CPU for now due to MPS issues."""
+        return torch.device("cpu")
     
     def _setup_distributed(self):
         """Setup distributed training if configured."""
@@ -485,11 +475,6 @@ class AdvancedTrainer:
     
     def _create_dataloader(self, dataset: LazyMidiDataset, batch_size: int, shuffle: bool = True) -> DataLoader:
         """Create dataloader with proper configuration."""
-        sampler = None
-        if self.config.distributed:
-            sampler = DistributedSampler(dataset, shuffle=shuffle)
-            shuffle = False  # DistributedSampler handles shuffling
-        
         # Dynamic sequence length for curriculum learning
         current_length = self.config.max_sequence_length
         if self.curriculum_scheduler:
@@ -497,15 +482,29 @@ class AdvancedTrainer:
             # Update dataset sequence length
             dataset.max_sequence_length = current_length
         
-        dataloader = DataLoader(
-            dataset,
+        # Use the dataset's create_dataloader function which includes the correct collate_fn
+        dataloader = create_dataloader(
+            dataset=dataset,
             batch_size=batch_size,
             shuffle=shuffle,
-            sampler=sampler,
             num_workers=4,
-            pin_memory=True,
-            drop_last=True
+            pin_memory=True
         )
+        
+        # Handle distributed training by replacing with distributed sampler if needed
+        if self.config.distributed:
+            sampler = DistributedSampler(dataset, shuffle=shuffle)
+            # Create new dataloader with distributed sampler
+            dataloader = DataLoader(
+                dataset,
+                batch_size=batch_size,
+                shuffle=False,  # DistributedSampler handles shuffling
+                sampler=sampler,
+                num_workers=4,
+                pin_memory=True,
+                drop_last=True,
+                collate_fn=midi_collate_fn  # Use the same collate function
+            )
         
         return dataloader
     
@@ -621,9 +620,9 @@ class AdvancedTrainer:
             # Track data usage for this batch
             self._track_batch_data_usage(batch, batch_size, seq_len)
             
-            # Forward pass with mixed precision
-            if self.config.use_mixed_precision:
-                with autocast():
+            # Forward pass with mixed precision (only on CUDA)
+            if self.config.use_mixed_precision and self.device.type == 'cuda':
+                with autocast(device_type='cuda'):
                     losses = self._forward_pass(tokens)
             else:
                 losses = self._forward_pass(tokens)
@@ -631,7 +630,7 @@ class AdvancedTrainer:
             # Backward pass
             loss = losses['total_loss'] / self.config.gradient_accumulation_steps
             
-            if self.config.use_mixed_precision:
+            if self.config.use_mixed_precision and self.device.type == 'cuda':
                 self.scaler.scale(loss).backward()
             else:
                 loss.backward()
@@ -639,7 +638,7 @@ class AdvancedTrainer:
             # Gradient accumulation
             if (batch_idx + 1) % self.config.gradient_accumulation_steps == 0:
                 # Gradient clipping
-                if self.config.use_mixed_precision:
+                if self.config.use_mixed_precision and self.device.type == 'cuda':
                     self.scaler.unscale_(self.optimizer)
                 
                 grad_norm = torch.nn.utils.clip_grad_norm_(
@@ -648,7 +647,7 @@ class AdvancedTrainer:
                 )
                 
                 # Optimizer step
-                if self.config.use_mixed_precision:
+                if self.config.use_mixed_precision and self.device.type == 'cuda':
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
                 else:
@@ -703,16 +702,16 @@ class AdvancedTrainer:
                     'files_augmented': self.files_augmented_this_epoch
                 }
                 
-                # Enhanced batch logging
-                self.enhanced_logger.log_batch(
-                    batch=batch_idx,
-                    losses=losses,
-                    learning_rate=current_lr,
-                    gradient_norm=grad_norm,
-                    throughput_metrics=throughput_metrics,
-                    memory_metrics=memory_metrics,
-                    data_stats=data_stats
-                )
+                # Enhanced batch logging (temporarily disabled to debug numpy issue)
+                # self.enhanced_logger.log_batch(
+                #     batch=batch_idx,
+                #     losses=losses,
+                #     learning_rate=current_lr,
+                #     gradient_norm=grad_norm,
+                #     throughput_metrics=throughput_metrics,
+                #     memory_metrics=memory_metrics,
+                #     data_stats=data_stats
+                # )
                 
                 # Legacy logging (for compatibility)
                 self._log_progress(batch_idx, len(train_dataloader), losses, current_batch_size)

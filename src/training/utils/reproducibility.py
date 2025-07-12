@@ -413,12 +413,12 @@ class ReproducibilityManager:
             
             # Generate test tensor 1
             test_tensor_1 = torch.randn(100, 50)
-            test_hash_1 = hashlib.md5(test_tensor_1.numpy().tobytes()).hexdigest()
+            test_hash_1 = hashlib.md5(test_tensor_1.detach().cpu().numpy().tobytes()).hexdigest()
             
             # Restore state and regenerate
             self.restore_random_state(current_state)
             test_tensor_2 = torch.randn(100, 50)
-            test_hash_2 = hashlib.md5(test_tensor_2.numpy().tobytes()).hexdigest()
+            test_hash_2 = hashlib.md5(test_tensor_2.detach().cpu().numpy().tobytes()).hexdigest()
             
             # Compare results
             reproducible = test_hash_1 == test_hash_2
@@ -454,8 +454,8 @@ class ReproducibilityManager:
         state_data = {
             "python": str(state.python_random_state),
             "numpy": str(state.numpy_random_state),
-            "torch": state.torch_random_state.numpy().tobytes().hex(),
-            "cuda": {str(k): v.cpu().numpy().tobytes().hex() for k, v in state.torch_cuda_states.items()}
+            "torch": state.torch_random_state.detach().cpu().numpy().tobytes().hex(),
+            "cuda": {str(k): v.detach().cpu().numpy().tobytes().hex() for k, v in state.torch_cuda_states.items()}
         }
         
         state_str = json.dumps(state_data, sort_keys=True)

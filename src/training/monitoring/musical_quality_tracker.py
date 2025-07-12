@@ -125,7 +125,7 @@ class MusicalQualityTracker:
         
         # Convert to numpy for analysis
         if isinstance(tokens, torch.Tensor):
-            tokens_np = tokens.cpu().numpy()
+            tokens_np = tokens.detach().cpu().numpy()
         else:
             tokens_np = np.array(tokens)
         

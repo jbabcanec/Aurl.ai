@@ -121,7 +121,7 @@ class MusicalPrior(nn.Module):
             log_det = 0
             for flow in self.flow_layers:
                 z, ld = flow(z)
-                log_det += ld
+                log_det = log_det + ld
                 
             return z
     
@@ -171,7 +171,7 @@ class MusicalPrior(nn.Module):
             # Inverse flow transformations
             for flow in reversed(self.flow_layers):
                 z_k, ld = flow.inverse(z_k)
-                log_det -= ld
+                log_det = log_det - ld
                 
             # Base distribution log prob
             log_prob_base = -0.5 * (z_k.pow(2).sum(dim=1) + self.latent_dim * np.log(2 * np.pi))
@@ -206,7 +206,7 @@ class PlanarFlow(nn.Module):
     def inverse(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Inverse transformation (approximate)."""
         # Approximate inverse using fixed-point iteration
-        z_inv = z
+        z_inv = z.clone()
         for _ in range(5):
             activation = F.tanh(torch.sum(self.weight * z_inv, dim=1, keepdim=True) + self.bias)
             z_inv = z - self.scale * activation
@@ -426,7 +426,7 @@ class LatentAnalyzer:
         from sklearn.manifold import TSNE
         
         # Reduce to 2D using t-SNE
-        latents_np = latents.cpu().numpy()
+        latents_np = latents.detach().cpu().numpy()
         tsne = TSNE(n_components=2, random_state=42)
         latents_2d = tsne.fit_transform(latents_np)
         
@@ -435,7 +435,7 @@ class LatentAnalyzer:
         
         if labels is not None:
             scatter = plt.scatter(latents_2d[:, 0], latents_2d[:, 1], 
-                                c=labels.cpu().numpy(), cmap='tab10', alpha=0.7)
+                                c=labels.detach().cpu().numpy(), cmap='tab10', alpha=0.7)
             plt.colorbar(scatter)
         else:
             plt.scatter(latents_2d[:, 0], latents_2d[:, 1], alpha=0.7)
@@ -475,7 +475,7 @@ class AdaptiveBeta(nn.Module):
     
     def step(self):
         """Update epoch counter."""
-        self.current_epoch += 1
+        self.current_epoch = self.current_epoch + 1  # Avoid inplace operation
     
     def get_beta(self) -> float:
         """Get current β value based on schedule."""

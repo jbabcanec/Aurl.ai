@@ -1115,7 +1115,7 @@ class RealTimeQualityEvaluator:
         
         import hashlib
         
-        tokens_bytes = tokens.cpu().numpy().tobytes()
+        tokens_bytes = tokens.detach().cpu().numpy().tobytes()
         return hashlib.md5(tokens_bytes).hexdigest()
     
     def get_evaluation_summary(self) -> Dict[str, Any]:

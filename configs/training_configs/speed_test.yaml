@@ -1,0 +1,69 @@
+# Ultra-fast test configuration for debugging speed issues
+# Minimal everything for maximum speed
+
+model:
+  mode: "transformer"  # Simplest mode
+  hidden_dim: 64      # Tiny model
+  num_layers: 1       # Single layer
+  num_heads: 1        # Single head
+  dropout: 0.0
+  max_sequence_length: 128  # Very short sequences
+  vocab_size: 774
+
+training:
+  batch_size: 1       # Single sample at a time
+  learning_rate: 1.0e-3
+  num_epochs: 1       # Just 1 epoch
+  warmup_steps: 5     # Minimal warmup
+  weight_decay: 0.0
+  gradient_clip_norm: 1.0
+  accumulate_grad_batches: 1
+  
+  # No scheduling
+  scheduler: "constant"
+  
+  # No mixed precision
+  mixed_precision: false
+  
+  # Simple loss weights
+  reconstruction_weight: 1.0
+
+data:
+  sequence_length: 128  # Very short
+  overlap: 32
+  min_sequence_length: 32
+  
+  # No augmentation
+  augmentation:
+    probability: 0.0
+  
+  # Minimal workers
+  num_workers: 1
+
+experiment:
+  name: "speed_test"
+  group: "aurl_ai"
+  tags: ["speed_test"]
+  notes: "Ultra-fast test for speed validation"
+  
+  # Minimal logging
+  use_wandb: false
+  use_tensorboard: false
+  use_mlflow: false
+  
+  log_every_n_steps: 10
+
+system:
+  device: "auto"
+  num_workers: 1
+  pin_memory: false
+  
+  # Paths
+  data_dir: "data/raw"
+  cache_dir: "data/cache"
+  output_dir: "outputs"
+  log_dir: "logs"
+  
+  # Random seed
+  seed: 42
+  deterministic: false  # Disable for speed

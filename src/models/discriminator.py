@@ -78,12 +78,15 @@ class SpectralNorm(nn.Module):
         
         # Update the module weight
         with torch.no_grad():
-            getattr(self.module, self.name).copy_(w_normalized)
+            # Replace parameter to avoid in-place operations
+            # Must use delattr and setattr for proper parameter handling
+            delattr(self.module, self.name)
+            self.module.register_parameter(self.name, nn.Parameter(w_normalized.data))
         
-        # Update buffers
-        getattr(self, f'{self.name}_u').copy_(u)
-        getattr(self, f'{self.name}_v').copy_(v)
-        getattr(self, f'{self.name}_sigma').copy_(sigma)
+        # Update buffers using data assignment to avoid in-place operations
+        getattr(self, f'{self.name}_u').data = u.data
+        getattr(self, f'{self.name}_v').data = v.data
+        getattr(self, f'{self.name}_sigma').data = sigma.data
 
 
 def spectral_norm(module, name='weight', n_power_iterations=1):
@@ -538,7 +541,8 @@ class MultiScaleDiscriminator(nn.Module):
         musical_features = self.feature_extractor(tokens)
         
         # Store intermediate features for feature matching
-        features = {'input': x.clone()}
+        # Avoid cloning to prevent gradient computation issues
+        features = {'input': x}
         
         # Multi-scale processing (disable masks for simplicity in discriminator)
         if not self.progressive_training or self.training_stage >= 0:
@@ -546,7 +550,7 @@ class MultiScaleDiscriminator(nn.Module):
             local_x = x
             for i, block in enumerate(self.local_discriminator):
                 local_x = block(local_x, musical_features, None)  # No mask
-                features[f'local_{i}'] = local_x.clone()
+                features[f'local_{i}'] = local_x
             
             # Pool and classify
             local_pooled = self.local_pool(local_x.transpose(1, 2)).squeeze(-1)
@@ -559,11 +563,11 @@ class MultiScaleDiscriminator(nn.Module):
             phrase_x = x
             for i, block in enumerate(self.phrase_discriminator):
                 phrase_x = block(phrase_x, musical_features, None)  # No mask
-                features[f'phrase_{i}'] = phrase_x.clone()
+                features[f'phrase_{i}'] = phrase_x
             
             # Pool and classify
             phrase_pooled = self.phrase_pool(phrase_x.transpose(1, 2))
-            phrase_pooled = phrase_pooled.reshape(batch_size, -1)
+            phrase_pooled = phrase_pooled.contiguous().view(batch_size, -1)
             phrase_logits = self.phrase_head(phrase_pooled)
         else:
             phrase_logits = torch.zeros(batch_size, 1, device=tokens.device)
@@ -573,7 +577,7 @@ class MultiScaleDiscriminator(nn.Module):
             global_x = x
             for i, block in enumerate(self.global_discriminator):
                 global_x = block(global_x, musical_features, None)  # No mask
-                features[f'global_{i}'] = global_x.clone()
+                features[f'global_{i}'] = global_x
             
             # Pool and classify
             global_pooled = self.global_pool(global_x.transpose(1, 2)).squeeze(-1)

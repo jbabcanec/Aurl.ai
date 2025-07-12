@@ -91,7 +91,8 @@ class PerceptualReconstructionLoss(nn.Module):
         critical_times = [4, 8, 16, 32]  # Relative to 15.625ms base
         for time_val in critical_times:
             if self.time_shift_start + time_val < self.velocity_start:
-                weights[self.time_shift_start + time_val] *= 1.5
+                # Use out-of-place multiplication to avoid in-place operation
+                weights[self.time_shift_start + time_val] = weights[self.time_shift_start + time_val] * 1.5
         
         return weights
     
@@ -125,7 +126,7 @@ class PerceptualReconstructionLoss(nn.Module):
         if self.musical_weighting:
             # Apply perceptual weights
             target_weights = self.token_weights[targets_flat].view(batch_size, seq_len)
-            weighted_loss = ce_loss * target_weights
+            weighted_loss = ce_loss.clone() * target_weights  # Clone to avoid inplace issues
             losses['perceptual_reconstruction'] = weighted_loss.mean()
             
             # Musical structure emphasis
@@ -140,7 +141,7 @@ class PerceptualReconstructionLoss(nn.Module):
             for key in losses:
                 if isinstance(losses[key], torch.Tensor) and losses[key].dim() > 0:
                     mask_expanded = mask.view(batch_size, seq_len)
-                    masked_loss = losses[key] * mask_expanded
+                    masked_loss = losses[key].clone() * mask_expanded  # Clone to avoid inplace issues
                     losses[key] = masked_loss.sum() / mask_expanded.sum().clamp(min=1)
         
         # Combined perceptual loss
@@ -172,7 +173,7 @@ class PerceptualReconstructionLoss(nn.Module):
         
         # Emphasize correct note prediction
         note_loss = F.cross_entropy(logits_flat, targets_flat, reduction='none')
-        weighted_note_loss = note_loss * positions_flat * self.perceptual_emphasis
+        weighted_note_loss = note_loss.clone() * positions_flat * self.perceptual_emphasis  # Clone to avoid inplace issues
         
         return weighted_note_loss.mean()
 
@@ -214,13 +215,13 @@ class AdaptiveKLScheduler(nn.Module):
     
     def step(self, kl_divergence: Optional[float] = None):
         """Update scheduler state."""
-        self.current_epoch += 1
+        self.current_epoch = self.current_epoch + 1  # Avoid inplace operation
         
         # Update KL history for adaptive scheduling
         if kl_divergence is not None:
             idx = self.history_idx % 100
             self.kl_history[idx] = kl_divergence
-            self.history_idx += 1
+            self.history_idx = self.history_idx + 1  # Avoid inplace operation
         
         # Update beta based on schedule
         self.current_beta = torch.tensor(self._compute_beta())
@@ -283,6 +284,8 @@ class AdaptiveKLScheduler(nn.Module):
         # Apply free bits
         if self.free_bits > 0:
             kl_divergence = F.relu(kl_divergence - self.free_bits) + self.free_bits
+        else:
+            kl_divergence = kl_divergence  # Ensure we don't modify the original
         
         # Apply current beta
         return self.current_beta * kl_divergence.mean()
@@ -334,7 +337,7 @@ class AdversarialStabilizer(nn.Module):
         idx = self.history_idx % 100
         self.gen_loss_history[idx] = generator_loss.item()
         self.disc_loss_history[idx] = discriminator_loss.item()
-        self.history_idx += 1
+        self.history_idx = self.history_idx + 1  # Avoid inplace operation
         
         # Compute balance ratio
         if self.history_idx > 10:
@@ -503,7 +506,7 @@ class MusicalConstraintLoss(nn.Module):
                 intervals = torch.diff(notes.float())
                 # Penalize large leaps (>octave = 12 semitones)
                 large_leaps = (torch.abs(intervals) > 12).float()
-                leap_penalty += large_leaps.sum()
+                leap_penalty += large_leaps.sum().item()  # Convert to Python scalar to avoid inplace operation
         
         return torch.tensor(leap_penalty, device=tokens.device, dtype=torch.float32) / batch_size
 
@@ -564,14 +567,14 @@ class MultiObjectiveLossBalancer(nn.Module):
                 weights[name] = 0.0
         
         # Compute weighted loss
-        total_loss = 0.0
+        total_loss = torch.tensor(0.0, device=self.log_vars.device, requires_grad=True)
         for i, loss in enumerate(loss_values):
             if i < len(self.log_vars):
                 precision = torch.exp(-self.log_vars[i])
                 precision = precision.clamp(self.min_weight, self.max_weight)
                 # Multi-task loss: precision * loss + log_var (regularization)
                 weighted_loss = precision * loss + self.log_vars[i]
-                total_loss += weighted_loss
+                total_loss = total_loss + weighted_loss  # Avoid inplace operation
         
         return total_loss, weights
     

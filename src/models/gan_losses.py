@@ -62,7 +62,7 @@ class FeatureMatchingLoss(nn.Module):
         Returns:
             Feature matching loss
         """
-        total_loss = 0.0
+        total_loss = torch.tensor(0.0, device=next(iter(real_features.values())).device, requires_grad=True)
         matched_features = 0
         
         for feature_name in real_features:
@@ -82,7 +82,7 @@ class FeatureMatchingLoss(nn.Module):
                 )
                 
                 weight = self.feature_weights.get(feature_name, 1.0)
-                total_loss += weight * feature_loss
+                total_loss = total_loss + weight * feature_loss  # Avoid inplace operation
                 matched_features += 1
         
         if matched_features > 0:
@@ -188,15 +188,15 @@ class SpectralRegularization(nn.Module):
         Returns:
             Combined regularization loss
         """
-        total_loss = 0.0
+        total_loss = torch.tensor(0.0, device=real_data.device, requires_grad=True)
         
         if self.use_r1:
             r1_loss = self.r1_regularization(discriminator, real_data)
-            total_loss += r1_loss
+            total_loss = total_loss + r1_loss  # Avoid inplace operation
         
         if self.use_gradient_penalty and fake_data is not None:
             gp_loss = self.gradient_penalty(discriminator, real_data, fake_data)
-            total_loss += gp_loss
+            total_loss = total_loss + gp_loss  # Avoid inplace operation
         
         return total_loss
 
@@ -254,7 +254,7 @@ class MusicalPerceptualLoss(nn.Module):
         pitch_classes = pitches % 12
         
         # Penalize tritones and major 7ths when played simultaneously
-        harsh_intervals = 0.0
+        harsh_intervals = torch.tensor(0.0, device=tokens.device, requires_grad=True)
         for i in range(seq_len - 1):
             curr_pitches = pitch_classes[:, i]
             next_pitches = pitch_classes[:, i + 1]
@@ -262,7 +262,7 @@ class MusicalPerceptualLoss(nn.Module):
             # Check for harsh intervals (simplified)
             interval = torch.abs(curr_pitches - next_pitches)
             harsh_mask = (interval == 6) | (interval == 11)  # Tritone or maj7
-            harsh_intervals += harsh_mask.float().mean()
+            harsh_intervals = harsh_intervals + harsh_mask.float().mean()  # Avoid inplace operation
         
         return harsh_intervals / seq_len
     
@@ -390,7 +390,7 @@ class ProgressiveGANLoss(nn.Module):
     
     def step_epoch(self):
         """Advance epoch counter."""
-        self.current_epoch += 1
+        self.current_epoch = self.current_epoch + 1  # Avoid inplace operation
 
 
 class ComprehensiveGANLoss(nn.Module):
