@@ -1,0 +1,22 @@
+Musical Parameter Quality Report
+=====================================
+Overall Grammar Score: 0.770
+Sequence Valid: False
+
+Note Structure:
+- Total Notes: 60
+- Note Pairing Score: 0.233
+- Note Pairing Errors: 46
+
+Parameter Quality:
+- Velocity Quality Score: 1.000
+- Silent Velocity Tokens: 0/7
+- Timing Quality Score: 1.000
+- Zero Duration Tokens: 0/109
+
+Structural Quality:
+- Timing Score: 1.000
+- Repetition Score: 1.000
+- Max Repetition: 1
+
+⚠️  WARNING: Low grammar score - consider retraining with grammar loss

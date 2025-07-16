@@ -1,0 +1,41 @@
+# Jazzy Generation Configuration
+# High-energy, musical generation with groove and variety
+
+generation:
+  # Basic parameters for musical flow
+  max_length: 200
+  min_length: 80
+  temperature: 2.5  # Way higher for maximum variety and chaos
+  
+  # Sampling strategy and constraints
+  use_constrained_sampling: true
+  min_notes: 15
+  target_notes: 50
+  
+  # Musical variety settings
+  enforce_note_pairing: true
+  prevent_early_end: true
+  musical_structure_bias: true
+  force_note_completion: true
+  
+  # Jazz-specific parameters
+  repetition_penalty: 2.0  # Strong penalty against drone-y repetition
+  note_completion_bias: 1.5  # Moderate completion bias for flow
+  velocity_variety: true
+  time_shift_bias: 1.5  # Encourage rhythmic variety
+  chord_bias: 2.0  # Encourage chord-like note clusters
+  phrase_structure: true  # Encourage musical phrases
+
+# Export settings
+export:
+  format: "midi"
+  include_metadata: true
+  title_prefix: "Aurl Jazz"
+  tempo: 132  # Slightly faster for groove
+  
+# Output organization
+output:
+  base_dir: "outputs/production"
+  include_timestamp: true
+  include_metrics: true
+  generate_reports: true

@@ -1,0 +1,39 @@
+# High Notes Generation Configuration
+# Optimized for generating 100+ MIDI notes
+
+generation:
+  # Basic parameters
+  max_length: 400
+  min_length: 100
+  temperature: 0.85
+  
+  # High-note specific settings
+  use_constrained_sampling: true
+  min_notes: 50
+  target_notes: 100
+  
+  # Enhanced constraints
+  enforce_note_pairing: true
+  prevent_early_end: true
+  musical_structure_bias: true
+  force_note_completion: true
+  
+  # Advanced parameters
+  repetition_penalty: 1.5
+  note_completion_bias: 3.0
+  velocity_variety: true
+  time_shift_bias: 1.0
+
+# Export settings
+export:
+  format: "midi"
+  include_metadata: true
+  title_prefix: "Aurl High Notes"
+  tempo: 120
+  
+# Output organization
+output:
+  base_dir: "outputs/production"
+  include_timestamp: true
+  include_metrics: true
+  generate_reports: true

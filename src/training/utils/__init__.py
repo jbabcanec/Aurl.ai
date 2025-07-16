@@ -15,6 +15,7 @@ This package contains supporting utilities for training:
 - Reproducibility management
 - Real-time quality evaluation
 - Musical domain-specific strategies
+- Musical grammar integration (Phase 5.3)
 """
 
 from .memory_optimization import MemoryProfiler, MemoryOptimizer
@@ -73,6 +74,11 @@ from .scaling_laws import (
     ModelScalingAnalyzer, ScalingExperiment, ScalingResult, ScalingLaw,
     ScalingDimension, PerformanceMetric as ScalingPerformanceMetric,
     ScalingLawType, create_scaling_experiment, analyze_model_scaling
+)
+
+# Phase 5.3 Grammar Integration
+from .grammar_integration import (
+    GrammarEnhancedTraining, GrammarTrainingConfig, GrammarTrainingState
 )
 
 __all__ = [
@@ -166,5 +172,10 @@ __all__ = [
     "ScalingPerformanceMetric",
     "ScalingLawType",
     "create_scaling_experiment",
-    "analyze_model_scaling"
+    "analyze_model_scaling",
+    
+    # Phase 5.3 Grammar Integration
+    "GrammarEnhancedTraining",
+    "GrammarTrainingConfig",
+    "GrammarTrainingState"
 ]

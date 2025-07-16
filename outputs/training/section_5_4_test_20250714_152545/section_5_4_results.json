@@ -1,0 +1,27 @@
+{
+  "epochs": [
+    {
+      "total_loss": 72705.8916015625,
+      "grammar_loss": 48426.3564453125,
+      "batch_count": 10,
+      "rollbacks_this_epoch": 0,
+      "avg_loss": 7270.58916015625,
+      "avg_grammar_loss": 4842.63564453125,
+      "grammar_best_score": 0.6166666666666667,
+      "grammar_total_rollbacks": 0,
+      "grammar_recent_avg": 0.6166666666666667
+    }
+  ],
+  "total_rollbacks": 0,
+  "best_grammar_score": 0.6166666666666667,
+  "final_grammar_summary": {
+    "total_batches": 10,
+    "best_grammar_score": 0.6166666666666667,
+    "total_rollbacks": 0,
+    "recent_grammar_scores": [
+      0.6166666666666667
+    ],
+    "consecutive_bad_scores": 0,
+    "checkpoint_history_length": 1
+  }
+}

@@ -1,0 +1,127 @@
+# Grammar-Enhanced Training Configuration
+# Addresses Section 5.3 requirements with integrated AdvancedTrainer
+
+# System Configuration
+system:
+  data_dir: "data/raw"
+  cache_dir: "data/cache"
+  output_dir: "outputs/training"
+  device: "auto"  # auto, cpu, cuda, mps
+
+# Model Configuration
+model:
+  hidden_dim: 512
+  num_layers: 6
+  num_heads: 8
+  max_sequence_length: 1024
+  dropout: 0.1
+  mode: "transformer"  # Start with transformer for stability
+
+# Training Configuration
+training:
+  num_epochs: 20
+  learning_rate: 5e-4
+  batch_size: 8
+  gradient_accumulation_steps: 1
+  max_grad_norm: 1.0
+  
+  # Advanced training features
+  use_mixed_precision: true
+  curriculum_learning: true
+  distributed: false
+  
+  # Optimization
+  optimizer: "adamw"
+  weight_decay: 0.01
+  warmup_steps: 1000
+  
+  # Scheduling
+  scheduler: "cosine"
+  min_learning_rate: 1e-7
+
+# Data Configuration
+data:
+  sequence_length: 512
+  overlap: 256
+  max_files: 150  # Use more files for robust training
+  
+  # Augmentation (disabled for grammar stability)
+  enable_augmentation: false
+  augmentation_probability: 0.0
+
+# Grammar-Specific Configuration
+grammar:
+  # Loss weighting
+  grammar_loss_weight: 1.5  # Strong grammar enforcement
+  
+  # Validation settings
+  validation_frequency: 25  # Validate every 25 batches
+  validation_sequence_length: 32
+  validation_temperature: 1.0
+  validation_samples: 3
+  
+  # Collapse detection
+  collapse_threshold: 0.6  # Higher threshold for stricter enforcement
+  collapse_patience: 2     # Quick response to issues
+  min_grammar_score: 0.3   # Emergency stop threshold
+  
+  # Rollback mechanism
+  enable_rollback: true
+  rollback_steps: 1
+  max_rollbacks: 3
+  
+  # Musical grammar weights
+  musical_grammar:
+    note_pairing_weight: 25.0      # Very important
+    velocity_quality_weight: 20.0   # Important for realistic output
+    timing_quality_weight: 15.0     # Important for musical flow
+    repetition_penalty_weight: 30.0 # Critical to prevent collapse
+
+# Logging Configuration
+logging:
+  log_level: "INFO"
+  log_interval: 50
+  save_interval: 1000
+  eval_interval: 1000
+  
+  # Enhanced logging
+  tensorboard: true
+  wandb: false  # Set to true if using Weights & Biases
+  
+  # Grammar-specific logging
+  log_grammar_details: true
+  save_grammar_history: true
+
+# Checkpointing
+checkpointing:
+  save_best: true
+  save_last: true
+  save_top_k: 3
+  monitor_metric: "avg_grammar_score"  # Use grammar score as primary metric
+  
+  # Checkpoint cleanup
+  max_checkpoints: 10
+  
+# Early Stopping
+early_stopping:
+  enabled: true
+  patience: 5
+  monitor_metric: "avg_grammar_score"
+  min_delta: 0.001
+  mode: "max"  # Higher grammar scores are better
+
+# Resource Management
+resources:
+  max_memory_gb: 16
+  num_workers: 0  # Start with 0 for debugging
+  pin_memory: true
+  
+  # Memory optimization
+  gradient_checkpointing: false  # Disable initially for debugging
+  cpu_offload: false
+
+# Validation
+validation:
+  enabled: false  # Disable validation initially
+  batch_size: 4
+  frequency: 1000

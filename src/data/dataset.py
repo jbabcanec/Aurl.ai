@@ -113,6 +113,9 @@ class LazyMidiDataset(Dataset):
         self.file_extensions = file_extensions or ['.mid', '.midi']
         self.midi_files = self._discover_midi_files(max_files)
         
+        # Validate configuration to prevent division by zero
+        self._validate_configuration()
+        
         # Sequence mapping (file_idx, start_idx, end_idx)
         self.sequences = []
         self._build_sequence_index()
@@ -137,6 +140,24 @@ class LazyMidiDataset(Dataset):
         
         logger.info(f"Discovered {len(midi_files)} MIDI files")
         return midi_files
+    
+    def _validate_configuration(self):
+        """Validate dataset configuration to prevent common errors."""
+        # Check for potential division by zero in step_size calculation
+        if self.effective_sequence_length <= self.overlap:
+            logger.warning(f"Potential configuration issue detected:")
+            logger.warning(f"  effective_sequence_length ({self.effective_sequence_length}) <= overlap ({self.overlap})")
+            logger.warning(f"  This will cause step_size <= 0 and trigger fallback behavior")
+            logger.warning(f"  Consider reducing overlap or increasing sequence_length/max_sequence_length")
+        
+        # Additional validations
+        if self.overlap < 0:
+            raise ValueError(f"overlap must be non-negative, got {self.overlap}")
+        
+        if self.effective_sequence_length <= 0:
+            raise ValueError(f"effective_sequence_length must be positive, got {self.effective_sequence_length}")
+        
+        logger.debug(f"Configuration validated: effective_length={self.effective_sequence_length}, overlap={self.overlap}")
     
     def _get_effective_sequence_length(self) -> int:
         """Get the effective sequence length considering curriculum learning."""
@@ -248,6 +269,16 @@ class LazyMidiDataset(Dataset):
                     if self.truncation_strategy == "sliding_window":
                         # Multiple overlapping sequences
                         step_size = effective_length - self.overlap
+                        
+                        # Prevent division by zero: ensure step_size > 0
+                        if step_size <= 0:
+                            logger.warning(f"Invalid step_size={step_size} for {midi_file}. "
+                                         f"effective_length={effective_length}, overlap={self.overlap}. "
+                                         f"Using single sequence fallback.")
+                            # Fallback: create single sequence without overlap
+                            self.sequences.append((file_idx, 0, min(effective_length, estimated_tokens)))
+                            continue
+                        
                         max_sequences = (estimated_tokens - self.overlap) // step_size
                         
                         # Limit number of sequences to prevent memory explosion
@@ -268,6 +299,16 @@ class LazyMidiDataset(Dataset):
                         if estimated_tokens <= effective_length * 3:
                             # Moderately long: sliding window
                             step_size = effective_length - self.overlap
+                            
+                            # Prevent division by zero: ensure step_size > 0
+                            if step_size <= 0:
+                                logger.warning(f"Invalid step_size={step_size} for {midi_file} in adaptive mode. "
+                                             f"effective_length={effective_length}, overlap={self.overlap}. "
+                                             f"Using truncate fallback.")
+                                # Fallback: single sequence, truncated
+                                self.sequences.append((file_idx, 0, min(effective_length, estimated_tokens)))
+                                continue
+                            
                             num_sequences = min(3, (estimated_tokens - self.overlap) // step_size)
                             
                             for seq_idx in range(num_sequences):
