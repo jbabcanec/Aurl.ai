@@ -1,0 +1,159 @@
+============================================================
+MIDI CHORD PROGRESSION ANALYSIS
+============================================================
+
+Files Analyzed: 194
+Total Chords Extracted: 59657
+
+MOST COMMON CHORDS ACROSS ALL FILES:
+----------------------------------------
+  (10, 'major'): 2039 occurrences
+  (0, 'major'): 2001 occurrences
+  (3, 'major'): 1986 occurrences
+  (5, 'major'): 1902 occurrences
+  (7, 'major'): 1593 occurrences
+  (9, 'major'): 1559 occurrences
+  (2, 'major'): 1536 occurrences
+  (0, 'minor'): 1453 occurrences
+  (9, 'minor'): 1450 occurrences
+  (4, 'major'): 1367 occurrences
+  (8, 'major'): 1347 occurrences
+  (1, 'major'): 1278 occurrences
+  (6, 'major'): 1267 occurrences
+  (7, 'minor'): 1257 occurrences
+  (5, 'minor'): 1214 occurrences
+
+COMPOSER-SPECIFIC ANALYSIS:
+----------------------------------------
+
+Beethoven:
+  Files: 27
+  Total chords: 14122
+  Average chords per file: 523
+  Most used chords:
+    (3, 'major'): 640 (4.5%)
+    (10, 'major'): 618 (4.4%)
+    (0, 'minor'): 605 (4.3%)
+    (5, 'minor'): 589 (4.2%)
+    (8, 'major'): 539 (3.8%)
+
+Chopin:
+  Files: 47
+  Total chords: 11337
+  Average chords per file: 241
+  Most used chords:
+    (8, 'major'): 483 (4.3%)
+    (6, 'major'): 456 (4.0%)
+    (1, 'major'): 443 (3.9%)
+    (3, 'major'): 328 (2.9%)
+    (10, 'major'): 286 (2.5%)
+
+Mendelssohn:
+  Files: 16
+  Total chords: 3162
+  Average chords per file: 197
+  Most used chords:
+    (4, 'major'): 222 (7.0%)
+    (9, 'minor'): 191 (6.0%)
+    (9, 'major'): 188 (5.9%)
+    (4, 'minor'): 159 (5.0%)
+    (7, 'major'): 144 (4.6%)
+
+Grieg:
+  Files: 16
+  Total chords: 3516
+  Average chords per file: 219
+  Most used chords:
+    (2, 'major'): 245 (7.0%)
+    (7, 'major'): 170 (4.8%)
+    (0, 'major'): 165 (4.7%)
+    (6, 'major'): 152 (4.3%)
+    (5, 'major'): 146 (4.2%)
+
+Schumann:
+  Files: 1
+  Total chords: 677
+  Average chords per file: 677
+  Most used chords:
+    (5, 'major'): 72 (10.6%)
+    (0, 'major'): 34 (5.0%)
+    (0, '7'): 32 (4.7%)
+    (9, 'minor'): 31 (4.6%)
+    (2, 'minor'): 24 (3.5%)
+
+Schubert:
+  Files: 23
+  Total chords: 3390
+  Average chords per file: 147
+  Most used chords:
+    (7, 'minor'): 245 (7.2%)
+    (2, 'major'): 221 (6.5%)
+    (10, 'major'): 196 (5.8%)
+    (5, 'major'): 179 (5.3%)
+    (7, 'major'): 143 (4.2%)
+
+Other:
+  Files: 29
+  Total chords: 9780
+  Average chords per file: 337
+  Most used chords:
+    (4, 'major'): 436 (4.5%)
+    (3, 'major'): 408 (4.2%)
+    (10, 'major'): 331 (3.4%)
+    (9, 'minor'): 282 (2.9%)
+    (9, 'major'): 268 (2.7%)
+
+Mozart:
+  Files: 21
+  Total chords: 10102
+  Average chords per file: 481
+  Most used chords:
+    (5, 'major'): 627 (6.2%)
+    (0, 'major'): 546 (5.4%)
+    (9, 'major'): 487 (4.8%)
+    (10, 'major'): 445 (4.4%)
+    (7, 'major'): 400 (4.0%)
+
+Bach:
+  Files: 3
+  Total chords: 965
+  Average chords per file: 321
+  Most used chords:
+    (5, 'minor'): 66 (6.8%)
+    (0, 'major'): 55 (5.7%)
+    (0, 'minor'): 51 (5.3%)
+    (5, 'major'): 50 (5.2%)
+    (2, 'minor'): 48 (5.0%)
+
+Debussy:
+  Files: 8
+  Total chords: 2140
+  Average chords per file: 267
+  Most used chords:
+    (2, 'major'): 85 (4.0%)
+    (3, 'major'): 71 (3.3%)
+    (10, 'major'): 65 (3.0%)
+    (6, 'major'): 61 (2.9%)
+    (0, 'sus2'): 56 (2.6%)
+
+Rachmaninoff:
+  Files: 2
+  Total chords: 230
+  Average chords per file: 115
+  Most used chords:
+    (1, 'minor'): 27 (11.7%)
+    (7, 'minor'): 25 (10.9%)
+    (2, 'major'): 12 (5.2%)
+    (6, 'minor'): 10 (4.3%)
+    (2, '7'): 10 (4.3%)
+
+Liszt:
+  Files: 1
+  Total chords: 236
+  Average chords per file: 236
+  Most used chords:
+    (8, 'major'): 24 (10.2%)
+    (5, 'minor'): 13 (5.5%)
+    (1, 'minor'): 11 (4.7%)
+    (3, 'major'): 10 (4.2%)
+    (4, 'major'): 9 (3.8%)

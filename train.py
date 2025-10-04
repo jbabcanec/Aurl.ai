@@ -1,361 +1,495 @@
 #!/usr/bin/env python3
 """
-Aurl.ai Section 5.4: Immediate Training Fix Plan
+Cumulative Progressive Training Script
 
-Integrates Section 5.3 GrammarEnhancedTraining with AdvancedTrainer
-to provide production-ready training with automatic rollback and
-real-time grammar monitoring.
-
-Section 5.4 Goals:
-- Replace basic training loop with AdvancedTrainer integration
-- Use GrammarEnhancedTraining for automatic model rollback
-- Add real-time grammar monitoring every 10-50 batches
-- Implement grammar-based early stopping
+This script trains the model progressively on each MIDI file, maintaining
+state across sessions and tracking which files have been processed.
 """
 
 import sys
 import torch
+import torch.nn as nn
 import argparse
 from pathlib import Path
+import yaml
+import time
 from datetime import datetime
-import copy
+from typing import Dict, Optional
+import signal
+import json
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-# Section 5.3 Grammar Integration
-from src.training.utils.grammar_integration import (
-    GrammarEnhancedTraining, 
-    GrammarTrainingConfig, 
-    GrammarTrainingState
+# Cumulative training system
+from src.training.cumulative_trainer import CumulativeTrainer
+
+# Enhanced training components
+from src.training.dissolvable_guidance import (
+    DissolvableGuidanceModule,
+    DissolvableGuidanceConfig
 )
+from src.training.adaptive_constraints import (
+    HybridConstraintSystem,
+    AdaptiveConstraintConfig
+)
+from src.training.training_monitor import TrainingMonitor, MonitoringConfig
 
-# Advanced Training Infrastructure
-from src.training.core.trainer import AdvancedTrainer, TrainingConfig
+# Core training
+from src.training.core.trainer import TrainingConfig
 from src.training.core.losses import ComprehensiveLossFramework
+from src.training.musical_grammar import MusicalGrammarLoss
 
-# Core Components
+# Model and data
+from src.models.music_transformer_vae_gan import MusicTransformerVAEGAN
 from src.data.dataset import LazyMidiDataset
 from src.data.representation import VocabularyConfig
-from src.models.music_transformer_vae_gan import MusicTransformerVAEGAN
-from src.utils.config import ConfigManager
 from src.utils.base_logger import setup_logger
 
 logger = setup_logger(__name__)
 
-class GrammarAdvancedTrainer(AdvancedTrainer):
+
+class ProgressiveTrainer:
     """
-    Section 5.4: Integration of AdvancedTrainer with GrammarEnhancedTraining.
-    
-    Combines the production-ready AdvancedTrainer infrastructure with
-    Section 5.3 grammar enforcement for automatic rollback and monitoring.
+    Trains model progressively on individual MIDI files with cumulative learning.
     """
-    
-    def __init__(self, 
-                 model,
-                 loss_framework,
-                 config: TrainingConfig,
-                 train_dataset,
-                 val_dataset=None,
-                 save_dir=None,
-                 grammar_config: GrammarTrainingConfig = None):
-        # Initialize AdvancedTrainer first
-        super().__init__(model, loss_framework, config, train_dataset, val_dataset, save_dir)
-        
-        # Initialize grammar enhancement
-        self.vocab_config = VocabularyConfig()
-        self.grammar_config = grammar_config or GrammarTrainingConfig(
-            grammar_validation_frequency=25,  # Check every 25 batches
-            collapse_threshold=0.6,
-            enable_rollback=True,
-            max_rollbacks=3
+
+    def __init__(self, config_path: str, checkpoint_path: Optional[str] = None):
+        # Load configuration
+        with open(config_path) as f:
+            self.config = yaml.safe_load(f)
+
+        # Setup device
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        logger.info(f"Using device: {self.device}")
+
+        # Initialize cumulative trainer
+        self.cumulative = CumulativeTrainer(
+            state_file="outputs/training/cumulative_state.json",
+            checkpoint_dir="outputs/checkpoints/cumulative"
         )
-        
-        # Initialize grammar-enhanced training
-        self.grammar_trainer = GrammarEnhancedTraining(
-            model=self.model,
-            device=self.device,
-            vocab_config=self.vocab_config,
-            grammar_config=self.grammar_config
+
+        # Initialize model
+        self.model = self._init_model(checkpoint_path)
+
+        # Initialize training components
+        self.loss_framework = ComprehensiveLossFramework()
+        self.grammar_loss = MusicalGrammarLoss()
+
+        # Initialize optimizer
+        self.optimizer = torch.optim.AdamW(
+            self.model.parameters(),
+            lr=self.config['training']['learning_rate'],
+            weight_decay=0.01
         )
-        
-        logger.info("Initialized GrammarAdvancedTrainer with automatic rollback")
-        logger.info(f"Grammar validation frequency: {self.grammar_config.grammar_validation_frequency}")
-        logger.info(f"Rollback enabled: {self.grammar_config.enable_rollback}")
-    
-    def compute_loss(self, batch):
-        """
-        Override AdvancedTrainer loss computation to include grammar enhancement.
-        """
-        tokens = batch['tokens'].to(self.device)
-        
-        # Forward pass
-        outputs = self.model(tokens[:, :-1])  # Input: all but last token
-        logits = outputs if isinstance(outputs, torch.Tensor) else outputs[0]
-        targets = tokens[:, 1:]  # Target: all but first token
-        
-        # Calculate base loss using comprehensive framework
-        base_loss = self.loss_framework(logits, targets, self.model)
-        
-        # Apply grammar enhancement
-        enhanced_loss, metrics = self.grammar_trainer.calculate_enhanced_loss(
-            logits, targets, base_loss
+
+        # Initialize guidance systems
+        self.guidance = self._init_guidance_system()
+        self.monitor = TrainingMonitor(
+            MonitoringConfig(
+                check_frequency=50,
+                enable_auto_correction=True
+            ),
+            self.model,
+            self.optimizer
         )
-        
-        return enhanced_loss, metrics
-    
-    def training_step(self, batch, batch_idx):
-        """
-        Override training step to include grammar monitoring and rollback.
-        """
-        # Compute enhanced loss
-        loss, metrics = self.compute_loss(batch)
-        
-        # Process batch with grammar monitoring
-        enhanced_loss, enhanced_metrics, should_stop = self.grammar_trainer.process_batch_with_grammar(
-            logits=None,  # Already calculated in compute_loss
-            targets=None,  # Already calculated in compute_loss
-            base_loss=loss,
-            epoch=self.current_epoch,
-            batch_idx=batch_idx
+
+        # Training state
+        self.global_step = 0
+        self.should_stop = False
+
+        # Setup signal handler for graceful shutdown
+        signal.signal(signal.SIGINT, self._signal_handler)
+
+    def _init_model(self, checkpoint_path: Optional[str]) -> nn.Module:
+        """Initialize or load model."""
+        model_config = self.config['model']
+        model = MusicTransformerVAEGAN(
+            vocab_size=model_config['vocab_size'],
+            d_model=model_config['hidden_dim'],
+            n_layers=model_config['num_layers'],
+            n_heads=model_config['num_heads'],
+            max_sequence_length=model_config['max_sequence_length'],
+            mode=model_config.get('mode', 'vae_gan')
+        ).to(self.device)
+
+        # Load checkpoint
+        if checkpoint_path:
+            logger.info(f"Loading checkpoint: {checkpoint_path}")
+            checkpoint = torch.load(checkpoint_path, map_location=self.device)
+            model.load_state_dict(checkpoint['model_state_dict'])
+            if 'optimizer_state_dict' in checkpoint:
+                self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        elif self.cumulative.state.last_checkpoint_path:
+            # Resume from cumulative state
+            checkpoint_path = self.cumulative.state.last_checkpoint_path
+            if Path(checkpoint_path).exists():
+                logger.info(f"Resuming from: {checkpoint_path}")
+                checkpoint = torch.load(checkpoint_path, map_location=self.device)
+                model.load_state_dict(checkpoint['model_state_dict'])
+
+        return model
+
+    def _init_guidance_system(self) -> HybridConstraintSystem:
+        """Initialize guidance and constraint systems."""
+        dissolvable_config = DissolvableGuidanceConfig(
+            initial_guidance_strength=1.0,
+            dissolution_start_epoch=self.cumulative.state.total_epochs + 10,
+            force_note_pairing=True
         )
-        
-        # Use enhanced loss for backward pass
-        loss = enhanced_loss
-        metrics.update(enhanced_metrics)
-        
-        # Check for grammar collapse and trigger rollback if needed
-        if should_stop and self.grammar_config.enable_rollback:
-            logger.warning("Grammar collapse detected - triggering rollback!")
-            success = self.grammar_trainer.perform_rollback(self.model, self.optimizer)
-            
-            if success:
-                logger.info("Model rollback successful - continuing training")
-                # Reset metrics after rollback
-                metrics['rollback_triggered'] = True
-            else:
-                logger.error("Model rollback failed - stopping training")
-                self.should_stop = True
-        
-        # Save checkpoint periodically for potential rollback
-        if batch_idx % 50 == 0:  # Every 50 batches
-            current_grammar_score = metrics.get('current_grammar_score', 0.5)
-            self.grammar_trainer.save_checkpoint_for_rollback(
-                model_state=copy.deepcopy(self.model.state_dict()),
-                optimizer_state=copy.deepcopy(self.optimizer.state_dict()),
-                epoch=self.current_epoch,
-                batch_idx=batch_idx,
-                grammar_score=current_grammar_score
+
+        adaptive_config = AdaptiveConstraintConfig(
+            initial_harmonic_strictness=0.8,
+            initial_melodic_strictness=0.8,
+            initial_rhythmic_strictness=0.7
+        )
+
+        return HybridConstraintSystem(
+            dissolvable_config,
+            adaptive_config
+        ).to(self.device)
+
+    def _signal_handler(self, sig, frame):
+        """Handle graceful shutdown."""
+        logger.info("\n⚠️ Received interrupt signal. Saving state and shutting down...")
+        self.should_stop = True
+
+    def train_on_file(self, file_path: str, epochs_per_file: int = 5) -> Dict:
+        """
+        Train on a single MIDI file.
+
+        Args:
+            file_path: Path to MIDI file
+            epochs_per_file: Number of epochs to train on this file
+
+        Returns:
+            Training metrics
+        """
+        start_time = time.time()
+        file_name = Path(file_path).name
+
+        logger.info("="*60)
+        logger.info(f"Training on: {file_name}")
+        logger.info("="*60)
+
+        # Mark file as training
+        self.cumulative.start_file_training(file_path)
+
+        try:
+            # Create dataset for single file
+            dataset = LazyMidiDataset(
+                data_dir=str(Path(file_path).parent),
+                cache_dir=self.config['data']['cache_dir'],
+                sequence_length=self.config['data']['sequence_length'],
+                specific_files=[file_path]
             )
-        
-        return loss, metrics
-    
-    def on_epoch_end(self, epoch, metrics):
-        """
-        Override epoch end to include grammar summary.
-        """
-        super().on_epoch_end(epoch, metrics)
-        
-        # Add grammar summary to epoch metrics
-        grammar_summary = self.grammar_trainer.get_grammar_summary()
-        
-        logger.info(f"Epoch {epoch} Grammar Summary:")
-        logger.info(f"  Best grammar score: {grammar_summary['best_grammar_score']:.3f}")
-        logger.info(f"  Total rollbacks: {grammar_summary['total_rollbacks']}")
-        logger.info(f"  Recent scores: {grammar_summary['recent_grammar_scores'][-3:]}")
-        
-        # Add to metrics for tracking
-        metrics.update({
-            'grammar_best_score': grammar_summary['best_grammar_score'],
-            'grammar_total_rollbacks': grammar_summary['total_rollbacks'],
-            'grammar_recent_avg': sum(grammar_summary['recent_grammar_scores'][-5:]) / max(1, len(grammar_summary['recent_grammar_scores'][-5:]))
-        })
 
-def create_section_5_4_configs():
-    """
-    Create Section 5.4 configurations for grammar-enhanced training.
-    
-    Returns:
-        Tuple of (TrainingConfig, GrammarTrainingConfig)
-    """
-    # Grammar configuration for Section 5.4
-    grammar_config = GrammarTrainingConfig(
-        grammar_loss_weight=1.5,           # Moderate grammar weight
-        grammar_validation_frequency=25,    # Check every 25 batches (Section 5.4 req)
-        collapse_threshold=0.6,             # Stricter than basic training
-        collapse_patience=3,                # Allow 3 bad scores before rollback
-        enable_rollback=True,               # Enable automatic rollback
-        rollback_steps=1,                   # Roll back 1 checkpoint
-        max_rollbacks=3,                    # Maximum 3 rollbacks per session
-        validation_sequence_length=32,      # Generate 32 tokens for validation
-        validation_temperature=1.0,         # Standard temperature
-        validation_samples=3                # Test 3 samples per validation
-    )
-    
-    # Training configuration using AdvancedTrainer
-    training_config = TrainingConfig(
-        num_epochs=10,
-        batch_size=8,                       # Small batch for stable training
-        learning_rate=1e-4,                 # Conservative learning rate
-        weight_decay=0.01,
-        warmup_steps=100,
-        max_grad_norm=1.0,                  # Gradient clipping
-        gradient_accumulation_steps=2,      # Effective batch size of 16
-        use_mixed_precision=False,          # Disable for stability
-        fp16=False,                         # Disable for stability
-        distributed=False,                  # Single GPU training
-        log_interval=10,
-        eval_interval=50,
-        save_interval=100
-    )
-    
-    return training_config, grammar_config
+            if len(dataset) == 0:
+                raise ValueError(f"No valid sequences in {file_name}")
 
-def main():
-    parser = argparse.ArgumentParser(description="Section 5.4: Immediate Training Fix Plan")
-    parser.add_argument("--config", "-c", default="configs/training_configs/quick_test.yaml")
-    parser.add_argument("--epochs", "-e", type=int, default=5)
-    parser.add_argument("--output", "-o", default="outputs/training")
-    parser.add_argument("--max-files", "-f", type=int, default=20, help="Maximum files for training")
-    parser.add_argument("--max-batches", "-b", type=int, default=50, help="Maximum batches per epoch")
-    
-    args = parser.parse_args()
-    
-    # Setup
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = Path(args.output) / f"section_5_4_training_{timestamp}"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
-    logger.info("🎵 Section 5.4: Immediate Training Fix Plan")
-    logger.info("🔧 Integrating AdvancedTrainer with GrammarEnhancedTraining")
-    logger.info(f"📁 Output: {output_dir}")
-    
-    # Load base config
-    config_manager = ConfigManager()
-    base_config = config_manager.load_config(args.config)
-    
-    # Create Section 5.4 configurations
-    training_config, grammar_config = create_section_5_4_configs()
-    
-    # Override with CLI arguments
-    training_config.num_epochs = args.epochs
-    
-    # Initialize components
-    vocab_config = VocabularyConfig()
-    
-    # Model
-    model = MusicTransformerVAEGAN(
-        vocab_size=vocab_config.vocab_size,
-        d_model=base_config.model.hidden_dim,
-        n_layers=base_config.model.num_layers,
-        n_heads=base_config.model.num_heads,
-        mode="transformer"
-    )
-    
-    logger.info(f"Model: {sum(p.numel() for p in model.parameters())} parameters")
-    
-    # Dataset with custom collate function
-    def collate_fn(batch):
-        """Custom collate function for grammar-enhanced training."""
-        return {
-            'tokens': torch.stack([item['tokens'] for item in batch]),
-            'file_path': [item['file_path'] for item in batch],
-            'sequence_idx': torch.tensor([item['sequence_idx'] for item in batch]),
-            'augmented': torch.tensor([item['augmented'] for item in batch])
+            # Create dataloader
+            dataloader = torch.utils.data.DataLoader(
+                dataset,
+                batch_size=self.config['training']['batch_size'],
+                shuffle=True,
+                num_workers=2
+            )
+
+            # Training metrics
+            metrics = {
+                'losses': [],
+                'grammar_scores': [],
+                'note_pairing_scores': []
+            }
+
+            # Train for specified epochs
+            for epoch in range(epochs_per_file):
+                if self.should_stop:
+                    break
+
+                epoch_loss = 0
+                epoch_grammar = 0
+                batch_count = 0
+
+                self.model.train()
+
+                for batch_idx, batch in enumerate(dataloader):
+                    if self.should_stop:
+                        break
+
+                    # Training step
+                    loss, batch_metrics = self._training_step(batch, batch_idx)
+
+                    # Accumulate metrics
+                    epoch_loss += loss
+                    epoch_grammar += batch_metrics.get('grammar_score', 0)
+                    batch_count += 1
+
+                    # Log progress
+                    if batch_idx % 10 == 0:
+                        logger.info(
+                            f"[{file_name}] Epoch {epoch+1}/{epochs_per_file} | "
+                            f"Batch {batch_idx}/{len(dataloader)} | "
+                            f"Loss: {loss:.4f} | "
+                            f"Grammar: {batch_metrics.get('grammar_score', 0):.3f}"
+                        )
+
+                # Epoch summary
+                avg_loss = epoch_loss / batch_count if batch_count > 0 else float('inf')
+                avg_grammar = epoch_grammar / batch_count if batch_count > 0 else 0
+
+                metrics['losses'].append(avg_loss)
+                metrics['grammar_scores'].append(avg_grammar)
+
+                logger.info(
+                    f"[{file_name}] Epoch {epoch+1} Complete | "
+                    f"Avg Loss: {avg_loss:.4f} | "
+                    f"Avg Grammar: {avg_grammar:.3f}"
+                )
+
+                # Update cumulative epochs
+                self.cumulative.state.total_epochs += 1
+
+            # Calculate final metrics
+            final_metrics = {
+                'final_loss': metrics['losses'][-1] if metrics['losses'] else float('inf'),
+                'grammar_score': metrics['grammar_scores'][-1] if metrics['grammar_scores'] else 0,
+                'avg_loss': sum(metrics['losses']) / len(metrics['losses'])
+                           if metrics['losses'] else float('inf'),
+                'avg_grammar': sum(metrics['grammar_scores']) / len(metrics['grammar_scores'])
+                              if metrics['grammar_scores'] else 0
+            }
+
+            # Complete file training
+            training_time = time.time() - start_time
+            self.cumulative.complete_file_training(
+                file_path,
+                final_metrics['final_loss'],
+                final_metrics,
+                training_time
+            )
+
+            # Save checkpoint after each file
+            self._save_checkpoint(file_name)
+
+            return final_metrics
+
+        except Exception as e:
+            logger.error(f"Error training on {file_name}: {str(e)}")
+            self.cumulative.fail_file_training(file_path, str(e))
+            return {}
+
+    def _training_step(self, batch: Dict, batch_idx: int) -> tuple:
+        """Single training step."""
+        tokens = batch['tokens'].to(self.device)
+
+        # Forward pass
+        self.optimizer.zero_grad()
+        outputs = self.model(tokens[:, :-1])
+        logits = outputs if isinstance(outputs, torch.Tensor) else outputs[0]
+        targets = tokens[:, 1:]
+
+        # Apply guidance
+        performance_metrics = {
+            'note_pairing_score': 0.7,  # Would come from actual validation
+            'grammar_score': 0.7
         }
-    
-    # Training dataset
-    train_dataset = LazyMidiDataset(
-        data_dir=base_config.system.data_dir,
-        vocab_config=vocab_config,
-        sequence_length=base_config.data.sequence_length,
-        overlap=base_config.data.overlap,
-        max_files=args.max_files,
-        cache_dir=base_config.system.cache_dir,
-        enable_augmentation=False,  # Disable for stable training
-        augmentation_probability=0.0
-    )
-    
-    # Note: AdvancedTrainer creates its own DataLoader internally
-    
-    logger.info(f"Dataset: {len(train_dataset)} sequences")
-    
-    # Initialize loss framework
-    loss_framework = ComprehensiveLossFramework(vocab_config)
-    
-    # Initialize Section 5.4 trainer
-    trainer = GrammarAdvancedTrainer(
-        model=model,
-        loss_framework=loss_framework,
-        config=training_config,
-        train_dataset=train_dataset,
-        val_dataset=None,  # No validation for this test
-        save_dir=output_dir,
-        grammar_config=grammar_config
-    )
-    
-    logger.info("✅ Section 5.4 trainer initialized with:")
-    logger.info(f"   - Automatic rollback: {grammar_config.enable_rollback}")
-    logger.info(f"   - Grammar validation frequency: {grammar_config.grammar_validation_frequency}")
-    logger.info(f"   - Collapse threshold: {grammar_config.collapse_threshold}")
-    logger.info(f"   - Maximum rollbacks: {grammar_config.max_rollbacks}")
-    
-    # Start training with limited batches for testing
-    try:
-        logger.info("🚀 Starting Section 5.4 training...")
-        trainer.max_batches_per_epoch = args.max_batches  # Limit for testing
-        
-        final_metrics = trainer.train()
-        
-        logger.info("✅ Section 5.4 training completed successfully!")
-        
-        # Get final grammar summary
-        grammar_summary = trainer.grammar_trainer.get_grammar_summary()
-        
-        logger.info("📊 Final Section 5.4 Results:")
-        logger.info(f"   Best grammar score: {grammar_summary['best_grammar_score']:.3f}")
-        logger.info(f"   Total rollbacks performed: {grammar_summary['total_rollbacks']}")
-        logger.info(f"   Final batch count: {grammar_summary['total_batches']}")
-        
-        # Save final results
-        results = {
-            'section': '5.4',
-            'description': 'Immediate Training Fix Plan',
-            'completion_time': datetime.now().isoformat(),
-            'grammar_summary': grammar_summary,
-            'final_metrics': final_metrics,
-            'config': {
-                'training': training_config.__dict__,
-                'grammar': grammar_config.__dict__
+
+        guided_logits = self.guidance(
+            logits.reshape(-1, logits.size(-1)),
+            tokens,
+            self.cumulative.state.total_epochs,
+            performance_metrics,
+            training=True
+        ).reshape(logits.shape)
+
+        # Calculate loss
+        loss_dict = self.loss_framework(guided_logits, targets, self.model)
+        total_loss = loss_dict.get('total_loss', loss_dict.get('loss'))
+
+        # Add grammar loss
+        grammar_results = self.grammar_loss.compute_grammar_score(tokens)
+        grammar_loss = self.grammar_loss(guided_logits, targets)
+        total_loss = total_loss + grammar_loss * 2.0
+
+        # Backward pass
+        total_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+        self.optimizer.step()
+
+        # Monitor training
+        with torch.no_grad():
+            sampled = torch.argmax(guided_logits, dim=-1)
+            monitor_results = self.monitor.check(
+                sampled.flatten()[:100],
+                total_loss.item(),
+                self.global_step
+            )
+
+        self.global_step += 1
+        self.cumulative.state.total_batches += 1
+
+        metrics = {
+            'grammar_score': grammar_results['overall_score'],
+            'note_pairing_score': monitor_results['checks'].get('note_pairing_score', 0)
+        }
+
+        return total_loss.item(), metrics
+
+    def _save_checkpoint(self, tag: str = ""):
+        """Save model checkpoint."""
+        checkpoint_path = self.cumulative.checkpoint_dir / f"checkpoint_epoch{self.cumulative.state.total_epochs}_{tag}.pt"
+
+        checkpoint = {
+            'epoch': self.cumulative.state.total_epochs,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'cumulative_state': {
+                'completed_files': self.cumulative.state.completed_files,
+                'total_files': self.cumulative.state.total_files,
+                'best_loss': self.cumulative.state.best_loss,
+                'best_grammar': self.cumulative.state.best_grammar_score
             }
         }
-        
-        import json
-        results_path = output_dir / "section_5_4_results.json"
-        with open(results_path, 'w') as f:
-            json.dump(results, f, indent=2, default=str)
-        
-        logger.info(f"📁 Results saved to: {results_path}")
-        
-        # Success criteria
-        if grammar_summary['best_grammar_score'] > 0.6:
-            logger.info("🎉 SUCCESS: Section 5.4 completed - grammar-enhanced training working!")
-        else:
-            logger.warning("⚠️ PARTIAL: Section 5.4 completed but grammar scores need improvement")
-            
-        return str(output_dir)
-        
-    except Exception as e:
-        logger.error(f"❌ Section 5.4 training failed: {e}")
-        import traceback
-        traceback.print_exc()
-        raise
+
+        torch.save(checkpoint, checkpoint_path)
+        self.cumulative.update_checkpoint(str(checkpoint_path), self.cumulative.state.total_epochs)
+
+        logger.info(f"💾 Saved checkpoint: {checkpoint_path.name}")
+
+    def run_progressive_training(
+        self,
+        data_dir: str,
+        epochs_per_file: int = 5,
+        max_files: Optional[int] = None
+    ):
+        """
+        Run progressive training on all MIDI files.
+
+        Args:
+            data_dir: Directory containing MIDI files
+            epochs_per_file: Epochs to train per file
+            max_files: Maximum number of files to process
+        """
+        logger.info("\n" + "="*60)
+        logger.info("🎼 STARTING CUMULATIVE PROGRESSIVE TRAINING")
+        logger.info("="*60)
+
+        # Scan for files
+        self.cumulative.scan_data_directory(data_dir)
+
+        # Get progress
+        progress = self.cumulative.get_progress_summary()
+        logger.info(f"\n📊 Training Progress:")
+        logger.info(f"  Total Files: {progress['total_files']}")
+        logger.info(f"  Completed: {progress['completed']} ({progress['progress_percent']:.1f}%)")
+        logger.info(f"  Pending: {progress['pending']}")
+        logger.info(f"  Failed: {progress['failed']}")
+        logger.info(f"  Best Loss: {progress['best_loss']:.4f}")
+        logger.info(f"  Best Grammar: {progress['best_grammar']:.3f}")
+
+        # Process files
+        files_processed = 0
+        while True:
+            if self.should_stop:
+                break
+
+            if max_files and files_processed >= max_files:
+                logger.info(f"Reached max files limit ({max_files})")
+                break
+
+            # Get next file
+            next_file = self.cumulative.get_next_file()
+            if not next_file:
+                logger.info("✅ All files processed!")
+                break
+
+            file_path, record = next_file
+
+            # Train on file
+            metrics = self.train_on_file(file_path, epochs_per_file)
+            files_processed += 1
+
+            # Show progress
+            progress = self.cumulative.get_progress_summary()
+            logger.info(f"\n📈 Progress Update: {progress['completed']}/{progress['total_files']} files "
+                       f"({progress['progress_percent']:.1f}%)")
+
+        # Final report
+        logger.info("\n" + "="*60)
+        logger.info("🏁 TRAINING SESSION COMPLETE")
+        logger.info("="*60)
+
+        final_progress = self.cumulative.get_progress_summary()
+        logger.info(f"Files Completed: {final_progress['completed']}/{final_progress['total_files']}")
+        logger.info(f"Total Training Time: {final_progress['total_time_hours']:.2f} hours")
+        logger.info(f"Best Loss Achieved: {final_progress['best_loss']:.4f}")
+        logger.info(f"Best Grammar Score: {final_progress['best_grammar']:.3f}")
+
+        # Export report
+        report_path = "outputs/training/training_report.json"
+        self.cumulative.export_training_report(report_path)
+        logger.info(f"\n📄 Detailed report saved to: {report_path}")
+
+
+def main():
+    """Main entry point for cumulative training."""
+    parser = argparse.ArgumentParser(description="Cumulative Progressive Training")
+    parser.add_argument(
+        '--config',
+        type=str,
+        default='configs/training_configs/dissolvable_grammar.yaml',
+        help='Training configuration file'
+    )
+    parser.add_argument(
+        '--data-dir',
+        type=str,
+        default='data/raw',
+        help='Directory containing MIDI files'
+    )
+    parser.add_argument(
+        '--checkpoint',
+        type=str,
+        default=None,
+        help='Checkpoint to resume from'
+    )
+    parser.add_argument(
+        '--epochs-per-file',
+        type=int,
+        default=5,
+        help='Number of epochs to train on each file'
+    )
+    parser.add_argument(
+        '--max-files',
+        type=int,
+        default=None,
+        help='Maximum number of files to process'
+    )
+    parser.add_argument(
+        '--reset',
+        action='store_true',
+        help='Reset cumulative state and start fresh'
+    )
+
+    args = parser.parse_args()
+
+    # Reset state if requested
+    if args.reset:
+        state_file = Path("outputs/training/cumulative_state.json")
+        if state_file.exists():
+            state_file.unlink()
+            logger.info("Reset cumulative training state")
+
+    # Initialize trainer
+    trainer = ProgressiveTrainer(args.config, args.checkpoint)
+
+    # Run training
+    trainer.run_progressive_training(
+        args.data_dir,
+        args.epochs_per_file,
+        args.max_files
+    )
+
 
 if __name__ == "__main__":
-    output_dir = main()
-    print(f"\n🎵 Section 5.4 Immediate Training Fix Plan completed!")
-    print(f"📁 Output directory: {output_dir}")
-    print(f"\n📋 Next steps:")
-    print(f"   1. Review training logs and grammar scores")
-    print(f"   2. Test generation quality with new model")
-    print(f"   3. Proceed to Section 5.5: Training Pipeline Integration")
+    main()

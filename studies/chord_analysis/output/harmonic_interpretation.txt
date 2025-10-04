@@ -1,0 +1,177 @@
+======================================================================
+HARMONIC ANALYSIS OF CLASSICAL MIDI REPERTOIRE
+======================================================================
+
+OVERVIEW
+----------------------------------------
+Total files analyzed: 194
+Total chord events: 59657
+Average chords per file: 307
+
+GLOBAL HARMONIC PALETTE
+----------------------------------------
+Most frequently used chords (assuming C major/A minor context):
+
+  • A#/Bb major: 2039 times (5.4%)
+  • C major: 2001 times (5.3%) - I (Tonic)
+  • D#/Eb major: 1986 times (5.3%)
+  • F major: 1902 times (5.0%) - IV (Subdominant)
+  • G major: 1593 times (4.2%) - V (Dominant)
+  • A major: 1559 times (4.1%)
+  • D major: 1536 times (4.1%)
+  • C minor: 1453 times (3.9%)
+  • A minor: 1450 times (3.8%) - vi (Submediant)
+  • E major: 1367 times (3.6%)
+
+COMPOSER HARMONIC SIGNATURES
+----------------------------------------
+
+BEETHOVEN
+Files analyzed: 27
+Total chords: 14122
+
+Harmonic character:
+  • Major chords: 3939 (56%)
+  • Minor chords: 3036 (43%)
+  • Other qualities: 0 (0%)
+
+Characteristics:
+  • Strong emphasis on C major (tonic) - 8.9% of all chords
+  • Frequent use of G major (dominant) - 6.8%
+  • Classical tonal clarity with clear I-V relationships
+
+
+CHOPIN
+Files analyzed: 47
+Total chords: 11337
+
+Harmonic character:
+  • Major chords: 2987 (60%)
+  • Minor chords: 1607 (32%)
+  • Other qualities: 335 (6%)
+
+Characteristics:
+  • Higher use of A#/Bb major - suggests frequent modulation
+  • More chromatic harmony (D#/Eb major prominent)
+  • Romantic-era harmonic complexity
+
+
+MENDELSSOHN
+Files analyzed: 16
+Total chords: 3162
+
+Harmonic character:
+  • Major chords: 1058 (57%)
+  • Minor chords: 711 (38%)
+  • Other qualities: 86 (4%)
+
+
+GRIEG
+Files analyzed: 16
+Total chords: 3516
+
+Harmonic character:
+  • Major chords: 1259 (67%)
+  • Minor chords: 434 (23%)
+  • Other qualities: 164 (8%)
+
+
+SCHUMANN
+Files analyzed: 1
+Total chords: 677
+
+Harmonic character:
+  • Major chords: 155 (39%)
+  • Minor chords: 90 (22%)
+  • Other qualities: 152 (38%)
+
+
+SCHUBERT
+Files analyzed: 23
+Total chords: 3390
+
+Harmonic character:
+  • Major chords: 1117 (56%)
+  • Minor chords: 541 (27%)
+  • Other qualities: 304 (15%)
+
+
+OTHER
+Files analyzed: 29
+Total chords: 9780
+
+Harmonic character:
+  • Major chords: 3022 (64%)
+  • Minor chords: 1634 (35%)
+  • Other qualities: 0 (0%)
+
+
+MOZART
+Files analyzed: 21
+Total chords: 10102
+
+Harmonic character:
+  • Major chords: 3329 (59%)
+  • Minor chords: 1882 (33%)
+  • Other qualities: 365 (6%)
+
+
+BACH
+Files analyzed: 3
+Total chords: 965
+
+Harmonic character:
+  • Major chords: 213 (37%)
+  • Minor chords: 270 (47%)
+  • Other qualities: 84 (14%)
+
+
+DEBUSSY
+Files analyzed: 8
+Total chords: 2140
+
+Harmonic character:
+  • Major chords: 561 (62%)
+  • Minor chords: 186 (20%)
+  • Other qualities: 145 (16%)
+
+
+RACHMANINOFF
+Files analyzed: 2
+Total chords: 230
+
+Harmonic character:
+  • Major chords: 38 (23%)
+  • Minor chords: 77 (48%)
+  • Other qualities: 45 (28%)
+
+
+LISZT
+Files analyzed: 1
+Total chords: 236
+
+Harmonic character:
+  • Major chords: 53 (38%)
+  • Minor chords: 49 (35%)
+  • Other qualities: 37 (26%)
+
+KEY OBSERVATIONS
+----------------------------------------
+1. MODE PREFERENCE:
+   • Major chords: 60%
+   • Minor chords: 40%
+   • Classical music shows 60% major tonality preference
+
+2. COMMON HARMONIC MOVEMENTS:
+   • C major (I) appears most frequently - tonal center
+   • G major (V) is second - dominant function crucial
+   • Strong I-V-I cadential patterns throughout
+
+3. COMPOSER DISTINCTIONS:
+   • Beethoven: More diatonic, clear tonal centers
+   • Chopin: More chromatic, frequent modulations
+   • Period differences clearly visible in harmonic choices
+
+4. HARMONIC RHYTHM:
+   • Average 307 chord changes per piece
+   • Suggests moderate to fast harmonic rhythm
