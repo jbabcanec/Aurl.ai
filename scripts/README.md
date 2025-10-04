@@ -6,15 +6,22 @@ This directory contains utility scripts for the Aurl.ai project.
 
 ```
 scripts/
-├── training/           # Training pipeline scripts
-│   ├── train_pipeline.py    # Original full training pipeline (deprecated)
-│   ├── train_progressive.py # Progressive training (transformer→VAE→GAN)
-│   └── train_enhanced.py    # Enhanced training with monitoring
-├── data/              # Data processing scripts
-│   └── preprocess_data.py   # Data preprocessing utilities
-├── analyze_sequence_lengths.py  # Analyze MIDI sequence lengths
-├── calculate_vocab_size.py      # Calculate vocabulary size
-└── create_combined_dashboard.py # Create training dashboard
+├── analysis/          # Data and model analysis
+│   ├── analyze_chords.py         # Extract chord progressions from MIDI
+│   └── analyze_chords_demo.py    # Demo chord analysis
+├── monitoring/        # Training monitoring tools
+│   ├── view_progress.py          # View training progress snapshot
+│   └── watch_progress.py         # Auto-refresh progress monitor
+├── training/          # Training pipeline scripts
+│   ├── train_pipeline.py         # Original full training pipeline
+│   ├── train_progressive.py      # Progressive training (transformer→VAE→GAN)
+│   └── train_enhanced.py         # Enhanced training with monitoring
+├── data_processing/   # Data preprocessing utilities
+│   └── preprocess_data.py        # Data preprocessing
+├── evaluation/        # Model evaluation scripts
+├── analyze_sequence_lengths.py   # Analyze MIDI sequence lengths
+├── calculate_vocab_size.py       # Calculate vocabulary size
+└── create_combined_dashboard.py  # Create training dashboard
 ```
 
 ## Training Scripts
