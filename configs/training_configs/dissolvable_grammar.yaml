@@ -1,0 +1,231 @@
+# Dissolvable Grammar-Enhanced Training Configuration
+# This configuration uses strong guidance early that gradually dissolves
+# as the model learns proper musical structure
+
+model:
+  mode: "vae_gan"  # Full architecture for best results
+  hidden_dim: 512
+  num_layers: 8
+  num_heads: 8
+  dropout: 0.1
+  max_sequence_length: 512  # Start with manageable sequences
+  vocab_size: 774
+
+  # VAE parameters
+  latent_dim: 128
+  encoder_layers: 6
+  decoder_layers: 6
+  beta: 1.0
+
+  # GAN parameters
+  discriminator_layers: 5
+  discriminator_hidden_dim: 256
+  spectral_norm: true
+
+  # Attention configuration
+  attention_type: "hierarchical"
+  local_window_size: 256
+  global_window_size: 64
+
+training:
+  # Extended training for proper learning
+  epochs: 150  # Increased from 20
+  batch_size: 16
+  learning_rate: 0.0001
+  warmup_steps: 1000
+  gradient_clip: 1.0
+
+  # Multi-stage training
+  stage_1_epochs: 50  # Transformer only
+  stage_2_epochs: 50  # Add VAE
+  stage_3_epochs: 50  # Add GAN
+
+  # Mixed precision for efficiency
+  mixed_precision: true
+  gradient_accumulation_steps: 4
+
+# Dissolvable guidance configuration
+dissolvable_guidance:
+  enabled: true
+  initial_strength: 1.0  # Full guidance at start
+  minimum_strength: 0.0  # No guidance when learned
+
+  # Dissolution schedule
+  dissolution_start_epoch: 20  # Start reducing after 20 epochs
+  dissolution_rate: 0.95  # 5% reduction per eligible epoch
+  performance_threshold: 0.85  # Need 85% performance to reduce
+
+  # Forced pairing for note structure
+  force_note_pairing: true
+  pairing_temperature: 0.1  # Very focused generation
+
+  # Adaptive dissolution
+  adaptive_dissolution: true
+  performance_window: 5  # Average over 5 epochs
+  acceleration_factor: 1.5  # Speed up if doing well
+  deceleration_factor: 0.7  # Slow down if struggling
+
+  # Safety parameters
+  minimum_epochs_before_dissolution: 30
+  rollback_on_collapse: true
+  collapse_detection_threshold: 0.5  # Note pairing below 50% triggers rollback
+
+# Musical grammar configuration
+musical_grammar:
+  enabled: true
+
+  # Loss weights (increased for better learning)
+  grammar_loss_weight: 2.0  # Increased from 1.5
+  note_pairing_weight: 100.0  # Dramatically increased from 25.0
+  velocity_quality_weight: 30.0  # Increased from 20.0
+  timing_quality_weight: 25.0  # Increased from 15.0
+  repetition_penalty_weight: 40.0  # Increased from 30.0
+
+  # Validation (now enabled!)
+  grammar_validation_frequency: 10  # Check every 10 batches
+  collapse_threshold: 0.6  # Rollback if grammar score < 0.6
+  enable_rollback: true
+  max_rollbacks: 5
+
+  # Target metrics
+  target_grammar_score: 0.9
+  target_note_pairing: 0.9
+  target_velocity_quality: 0.85
+  target_timing_quality: 0.85
+
+# Data configuration
+data:
+  # Dataset paths
+  train_data_path: "data/raw"
+  cache_dir: "data/cache"
+  max_files: 150  # Use all available files
+
+  # Sequence parameters
+  sequence_length: 512  # Manageable length for learning
+  min_sequence_length: 64
+  overlap: 64
+
+  # Augmentation (now enabled!)
+  enable_augmentation: true
+  augmentation_probability: 0.3  # 30% of samples augmented
+
+  augmentation_config:
+    pitch_shift_range: [-3, 3]  # Semitones
+    time_stretch_range: [0.9, 1.1]  # Speed variation
+    velocity_scale_range: [0.8, 1.2]  # Dynamics variation
+
+# Validation configuration (now enabled!)
+validation:
+  enabled: true
+  validation_split: 0.1  # 10% for validation
+  validation_frequency: 5  # Validate every 5 epochs
+
+  # Early stopping based on validation
+  early_stopping: true
+  patience: 15  # Stop if no improvement for 15 epochs
+  min_delta: 0.001
+
+  # Validation metrics
+  track_metrics:
+    - "loss"
+    - "grammar_score"
+    - "note_pairing_score"
+    - "perplexity"
+
+# Checkpointing
+checkpointing:
+  save_frequency: 5  # Save every 5 epochs
+  keep_best_n: 5  # Keep 5 best checkpoints
+  save_last: true
+
+  # Save based on multiple metrics
+  monitor_metric: "note_pairing_score"  # Primary metric
+  secondary_metrics:
+    - "grammar_score"
+    - "validation_loss"
+
+# Logging configuration
+logging:
+  log_level: "INFO"
+  log_frequency: 100  # Log every 100 batches
+
+  # Track detailed metrics
+  track_detailed_metrics: true
+  save_generation_samples: true
+  sample_generation_frequency: 500  # Generate samples every 500 batches
+
+  # Tensorboard
+  use_tensorboard: true
+  tensorboard_dir: "outputs/tensorboard"
+
+# Curriculum learning
+curriculum:
+  enabled: true
+
+  # Start simple, increase complexity
+  initial_sequence_length: 64
+  target_sequence_length: 512
+  length_increment_epochs: 10  # Increase length every 10 epochs
+
+  # Complexity scheduling
+  initial_complexity: "simple"  # Start with simple patterns
+  target_complexity: "full"  # End with full musical complexity
+
+  complexity_stages:
+    - name: "simple"
+      epochs: 30
+      features: ["notes", "basic_timing"]
+    - name: "intermediate"
+      epochs: 30
+      features: ["notes", "timing", "velocity"]
+    - name: "full"
+      epochs: 90
+      features: ["all"]
+
+# Optimization
+optimization:
+  optimizer: "AdamW"
+  weight_decay: 0.01
+
+  # Learning rate schedule
+  scheduler: "cosine_with_warmup"
+  warmup_steps: 2000
+  min_learning_rate: 0.00001
+
+  # Gradient optimization
+  gradient_checkpointing: true
+  gradient_accumulation_steps: 4
+  max_grad_norm: 1.0
+
+# Hardware configuration
+hardware:
+  device: "cuda"  # Use GPU if available
+  device_ids: [0]  # Single GPU
+
+  # Memory optimization
+  empty_cache_frequency: 100  # Clear cache every 100 batches
+
+  # Precision
+  use_amp: true  # Automatic mixed precision
+  amp_opt_level: "O1"  # Conservative mixed precision
+
+# Experiment tracking
+experiment:
+  name: "dissolvable_grammar_training"
+  description: "Training with dissolvable guidance for proper note pairing"
+  tags: ["grammar", "dissolvable", "note_pairing"]
+
+  # Weights & Biases (optional)
+  use_wandb: false
+  wandb_project: "aurl_music_generation"
+  wandb_entity: null
+
+# Generation configuration for validation
+generation:
+  temperature: 0.8  # Slightly conservative for validation
+  top_k: 50
+  top_p: 0.9
+
+  # Constraints during validation generation
+  use_constraints: true
+  constraint_strength: 0.5  # Medium strength during validation

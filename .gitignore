@@ -107,4 +107,6 @@ site/
 # Development
 scratch/
 experiments/
-temp/
+temp/__pycache__/
+*.pyc
+*.pyo

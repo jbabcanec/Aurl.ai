@@ -51,37 +51,9 @@ class ModelConfig:
     flash_attention: bool = True
 
 
-@dataclass
-class TrainingConfig:
-    """Training configuration."""
-    batch_size: int = 32
-    learning_rate: float = 1e-4
-    num_epochs: int = 100
-    warmup_steps: int = 1000
-    weight_decay: float = 1e-5
-    gradient_clip_norm: float = 1.0
-    accumulate_grad_batches: int = 1
-    
-    # Scheduling
-    scheduler: str = "cosine"  # cosine, linear, exponential
-    min_learning_rate: float = 1e-6
-    
-    # Early stopping
-    early_stopping: bool = True
-    patience: int = 10
-    min_delta: float = 1e-4
-    
-    # Checkpointing
-    save_every_n_epochs: int = 5
-    keep_best_n_checkpoints: int = 3
-    
-    # Mixed precision
-    mixed_precision: bool = True
-    
-    # Loss weights
-    reconstruction_weight: float = 1.0
-    kl_weight: float = 1.0
-    adversarial_weight: float = 0.1
+# TrainingConfig moved to src.training.core.trainer for consolidation
+# Import it from there if needed
+from src.training.core.trainer import TrainingConfig
 
 
 @dataclass

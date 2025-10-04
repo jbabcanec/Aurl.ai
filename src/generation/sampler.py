@@ -23,6 +23,7 @@ from ..utils.constants import (
     SPECIAL_TOKENS, MAX_SEQUENCE_LENGTH
 )
 from ..data.representation import EventType
+from .optimized_constraints import OptimizedConstraintEngine, OptimizedConstraintConfig
 
 # Token constants
 MIDI_PAD_TOKEN = SPECIAL_TOKENS["PAD"]
@@ -102,7 +103,7 @@ class MusicSampler:
     def __init__(self, model: torch.nn.Module, device: torch.device):
         """
         Initialize the music sampler.
-        
+
         Args:
             model: The trained music generation model
             device: Device to run generation on (CPU/GPU)
@@ -110,10 +111,17 @@ class MusicSampler:
         self.model = model
         self.device = device
         self.model.eval()
-        
+
         # Cache for key-value pairs (for transformer models)
         self._kv_cache = {}
-        
+
+        # Initialize optimized constraint engine
+        constraint_config = OptimizedConstraintConfig(
+            precompute_masks=True,
+            vectorize_operations=True
+        )
+        self.constraint_engine = OptimizedConstraintEngine(constraint_config)
+
         # Statistics tracking
         self.generation_stats = {
             "total_generated": 0,
